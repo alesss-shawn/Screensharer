@@ -365,7 +365,7 @@ $contentPanel.BackColor = [System.Drawing.Color]::Transparent
 $contentPanel.AutoScroll = $true
 $mainForm.Controls.Add($contentPanel)
 
-# CARD INTERFACCIA
+# CARD INTERFACCIA COLLEGATE
 $card1 = New-ActionCard -Y 10  -IconColor $Theme.Primary -Title "Cerca file .log.gz" -Desc "Ricerca full-text nei file .log.gz compressi" -ButtonText "Avvia" -ButtonStyle "Primary" -OnClick { Start-LogGzSearch }
 $contentPanel.Controls.Add($card1)
 
@@ -385,7 +385,7 @@ $card6 = New-ActionCard -Y 410 -IconColor "#FF6BFF" -Title "Registrazioni attive
 $contentPanel.Controls.Add($card6)
 
 # ========================================================================
-# FUNZIONI OPERATIVE COMPLETE
+# FUNZIONI OPERATIVE COMPLETE COLLEGATE AI PULSANTI
 # ========================================================================
 
 function Select-ScanScope {
