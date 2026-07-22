@@ -305,6 +305,55 @@ function New-StyledForm {
     return $form
 }
 
+function New-ActionCard {
+    param(
+        [int]$Y, [string]$IconChar, [string]$IconColor, [string]$Title, [string]$Desc,
+        [string]$ButtonText, [string]$ButtonStyle = "Primary", [scriptblock]$OnClick
+    )
+    $card = New-Object System.Windows.Forms.Panel
+    $card.Size = New-Object System.Drawing.Size(670, 85)
+    $card.Location = New-Object System.Drawing.Point(5, $Y)
+    $card.BackColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Surface)
+    $card.Cursor = [System.Windows.Forms.Cursors]::Hand
+    Set-RoundedCorners -Control $card -Radius 14
+    
+    $accentBar = New-Object System.Windows.Forms.Panel
+    $accentBar.Size = New-Object System.Drawing.Size(4, 85)
+    $accentBar.Location = New-Object System.Drawing.Point(0, 0)
+    $accentBar.BackColor = [System.Drawing.ColorTranslator]::FromHtml($IconColor)
+    $card.Controls.Add($accentBar)
+
+    $lblIcon = New-Object System.Windows.Forms.Label
+    $lblIcon.Text = $IconChar
+    $lblIcon.Font = New-Object System.Drawing.Font("Segoe UI", 16, [System.Drawing.FontStyle]::Bold)
+    $lblIcon.Location = New-Object System.Drawing.Point(20, 20)
+    $lblIcon.Size = New-Object System.Drawing.Size(46, 46)
+    $lblIcon.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+    $lblIcon.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($IconColor)
+    $card.Controls.Add($lblIcon)
+
+    $lblT = New-Object System.Windows.Forms.Label
+    $lblT.Text = $Title
+    $lblT.Font = New-Object System.Drawing.Font("Segoe UI", 13, [System.Drawing.FontStyle]::Bold)
+    $lblT.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Text)
+    $lblT.Location = New-Object System.Drawing.Point(80, 16)
+    $lblT.Size = New-Object System.Drawing.Size(310, 22)
+    $card.Controls.Add($lblT)
+
+    $lblD = New-Object System.Windows.Forms.Label
+    $lblD.Text = $Desc
+    $lblD.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+    $lblD.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.TextSecondary)
+    $lblD.Location = New-Object System.Drawing.Point(80, 42)
+    $lblD.Size = New-Object System.Drawing.Size(330, 18)
+    $card.Controls.Add($lblD)
+    
+    $btn = New-UnifiedButton -Text $ButtonText -X 530 -Y 22 -Width 120 -Height 42 -Style $ButtonStyle -OnClick $OnClick
+    $card.Controls.Add($btn)
+    
+    return $card
+}
+
 $mainForm = New-Object System.Windows.Forms.Form
 $mainForm.Text = "CoralMC Alts Checker"
 $mainForm.Size = New-Object System.Drawing.Size(720, 800)
@@ -337,12 +386,32 @@ $contentPanel.BackColor = [System.Drawing.Color]::Transparent
 $contentPanel.AutoScroll = $true
 $mainForm.Controls.Add($contentPanel)
 
+# AGGIUNTA DELLE CARD NELLA SCHERMATA PRINCIPALE
+$card1 = New-ActionCard -Y 5 -IconChar "[>]" -IconColor $Theme.Primary -Title "Cerca file .log.gz" -Desc "Ricerca full-text nei file .log.gz compressi" -ButtonText "Avvia" -ButtonStyle "Primary" -OnClick { Start-LogGzSearch }
+$contentPanel.Controls.Add($card1)
+
+$card2 = New-ActionCard -Y 100 -IconChar "[i]" -IconColor $Theme.Accent -Title "Analizza USN Journal" -Desc "Analisi approfondita del journal USN (richiede Admin)" -ButtonText "Avvia" -ButtonStyle "Accent" -OnClick { Start-JournalRead }
+$contentPanel.Controls.Add($card2)
+
+$card3 = New-ActionCard -Y 195 -IconChar "[*]" -IconColor $Theme.Success -Title "Analisi Automatica" -Desc "Analizza nickname, server e stato login dai log" -ButtonText "Avvia" -ButtonStyle "Success" -OnClick { Start-AutoAnalyze }
+$contentPanel.Controls.Add($card3)
+
+$card4 = New-ActionCard -Y 290 -IconChar "[!]" -IconColor $Theme.Warning -Title "Analisi Sistema" -Desc "Verifica integrita sistema e USN Journal" -ButtonText "Analizza" -ButtonStyle "Warning" -OnClick { Check-SystemIntegrity }
+$contentPanel.Controls.Add($card4)
+
+$card5 = New-ActionCard -Y 385 -IconChar "[x]" -IconColor "#FF6B6B" -Title "Ultima modifica cestino" -Desc "Controlla l'ultima data di modifica del cestino" -ButtonText "Controlla" -ButtonStyle "Rose" -OnClick { Check-RecycleBin }
+$contentPanel.Controls.Add($card5)
+
+$card6 = New-ActionCard -Y 480 -IconChar "[#]" -IconColor "#FF6BFF" -Title "Registrazioni attive" -Desc "Controlla se sono attive registrazioni" -ButtonText "Controlla" -ButtonStyle "Magenta" -OnClick { Check-Recordings }
+$contentPanel.Controls.Add($card6)
+
 function Start-LogGzSearch { [System.Windows.Forms.MessageBox]::Show("Funzione Cerca .log.gz", "Info") | Out-Null }
 function Start-JournalRead { [System.Windows.Forms.MessageBox]::Show("Funzione USN Journal", "Info") | Out-Null }
 function Start-AutoAnalyze { [System.Windows.Forms.MessageBox]::Show("Funzione Analisi Automatica", "Info") | Out-Null }
 function Check-SystemIntegrity { [System.Windows.Forms.MessageBox]::Show("Funzione Analisi Sistema", "Info") | Out-Null }
 function Check-RecycleBin { [System.Windows.Forms.MessageBox]::Show("Funzione Cestino", "Info") | Out-Null }
 function Check-Recordings { [System.Windows.Forms.MessageBox]::Show("Funzione Registrazioni", "Info") | Out-Null }
+function Select-ScanScope { return @{ Mode = "All" } }
 
 $footerPanel = New-Object System.Windows.Forms.Panel
 $footerPanel.Size = New-Object System.Drawing.Size(720, 50)
