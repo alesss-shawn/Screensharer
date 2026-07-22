@@ -204,93 +204,6 @@ function New-UnifiedButton {
     return $btn
 }
 
-function New-UnifiedPanel {
-    param(
-        [int]$X,
-        [int]$Y,
-        [int]$Width,
-        [int]$Height,
-        [string]$Style = "Surface",
-        [string]$Title = ""
-    )
-    
-    $styleDef = $PanelStyles[$Style]
-    if (-not $styleDef) { $styleDef = $PanelStyles["Surface"] }
-    
-    $panel = New-Object System.Windows.Forms.Panel
-    $panel.Size = New-Object System.Drawing.Size($Width, $Height)
-    $panel.Location = New-Object System.Drawing.Point($X, $Y)
-    $panel.BackColor = [System.Drawing.ColorTranslator]::FromHtml($styleDef.BackColor)
-    Set-RoundedCorners -Control $panel -Radius 10
-    
-    $panel.Add_Paint({
-        param($s, $e)
-        try {
-            $pen = New-Object System.Drawing.Pen([System.Drawing.ColorTranslator]::FromHtml($styleDef.BorderColor), 1)
-            $rect = New-Object System.Drawing.Rectangle(1, 1, $s.Width - 2, $s.Height - 2)
-            $e.Graphics.DrawRectangle($pen, $rect)
-            $pen.Dispose()
-        } catch { }
-    })
-    
-    if ($Title) {
-        $lblTitle = New-Object System.Windows.Forms.Label
-        $lblTitle.Text = $Title
-        $lblTitle.Font = New-Object System.Drawing.Font("Segoe UI", 13, [System.Drawing.FontStyle]::Bold)
-        $lblTitle.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Text)
-        $lblTitle.Location = New-Object System.Drawing.Point(15, 12)
-        $lblTitle.AutoSize = $true
-        $panel.Controls.Add($lblTitle)
-    }
-    
-    return $panel
-}
-
-function New-UnifiedLabel {
-    param(
-        [string]$Text,
-        [int]$X,
-        [int]$Y,
-        [int]$Width = 0,
-        [int]$Height = 0,
-        [int]$FontSize = 10,
-        [string]$Weight = "Regular",
-        [string]$Color = "Text"
-    )
-    
-    $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Text = $Text
-    $lbl.Location = New-Object System.Drawing.Point($X, $Y)
-    
-    if ($Width -gt 0 -and $Height -gt 0) { 
-        $lbl.Size = New-Object System.Drawing.Size($Width, $Height) 
-    } else { 
-        $lbl.AutoSize = $true 
-    }
-    
-    $fontWeight = if ($Weight -eq "Bold") { [System.Drawing.FontStyle]::Bold } else { [System.Drawing.FontStyle]::Regular }
-    $lbl.Font = New-Object System.Drawing.Font("Segoe UI", $FontSize, $fontWeight)
-    
-    $colorMap = @{
-        "Text" = $Theme.Text
-        "Secondary" = $Theme.TextSecondary
-        "Muted" = $Theme.TextMuted
-        "Success" = $Theme.Success
-        "Warning" = $Theme.Warning
-        "Error" = $Theme.Error
-        "Primary" = $Theme.Primary
-        "Accent" = $Theme.Accent
-    }
-    
-    if ($colorMap.ContainsKey($Color)) {
-        $lbl.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($colorMap[$Color])
-    } else {
-        $lbl.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Color)
-    }
-    
-    return $lbl
-}
-
 function New-StyledForm {
     param([string]$Title, [int]$Width, [int]$Height)
     $form = New-Object System.Windows.Forms.Form
@@ -311,44 +224,44 @@ function New-ActionCard {
         [string]$ButtonText, [string]$ButtonStyle = "Primary", [scriptblock]$OnClick
     )
     $card = New-Object System.Windows.Forms.Panel
-    $card.Size = New-Object System.Drawing.Size(670, 85)
-    $card.Location = New-Object System.Drawing.Point(5, $Y)
+    $card.Size = New-Object System.Drawing.Size(660, 75)
+    $card.Location = New-Object System.Drawing.Point(10, $Y)
     $card.BackColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Surface)
     $card.Cursor = [System.Windows.Forms.Cursors]::Hand
-    Set-RoundedCorners -Control $card -Radius 14
-    
+    Set-RoundedCorners -Control $card -Radius 10
+
     $accentBar = New-Object System.Windows.Forms.Panel
-    $accentBar.Size = New-Object System.Drawing.Size(4, 85)
+    $accentBar.Size = New-Object System.Drawing.Size(4, 75)
     $accentBar.Location = New-Object System.Drawing.Point(0, 0)
     $accentBar.BackColor = [System.Drawing.ColorTranslator]::FromHtml($IconColor)
     $card.Controls.Add($accentBar)
 
     $lblIcon = New-Object System.Windows.Forms.Label
     $lblIcon.Text = $IconChar
-    $lblIcon.Font = New-Object System.Drawing.Font("Segoe UI", 16, [System.Drawing.FontStyle]::Bold)
-    $lblIcon.Location = New-Object System.Drawing.Point(20, 20)
-    $lblIcon.Size = New-Object System.Drawing.Size(46, 46)
+    $lblIcon.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
+    $lblIcon.Location = New-Object System.Drawing.Point(15, 20)
+    $lblIcon.Size = New-Object System.Drawing.Size(35, 35)
     $lblIcon.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
     $lblIcon.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($IconColor)
     $card.Controls.Add($lblIcon)
 
     $lblT = New-Object System.Windows.Forms.Label
     $lblT.Text = $Title
-    $lblT.Font = New-Object System.Drawing.Font("Segoe UI", 13, [System.Drawing.FontStyle]::Bold)
+    $lblT.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
     $lblT.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Text)
-    $lblT.Location = New-Object System.Drawing.Point(80, 16)
-    $lblT.Size = New-Object System.Drawing.Size(310, 22)
+    $lblT.Location = New-Object System.Drawing.Point(60, 14)
+    $lblT.Size = New-Object System.Drawing.Size(430, 22)
     $card.Controls.Add($lblT)
 
     $lblD = New-Object System.Windows.Forms.Label
     $lblD.Text = $Desc
     $lblD.Font = New-Object System.Drawing.Font("Segoe UI", 9)
     $lblD.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.TextSecondary)
-    $lblD.Location = New-Object System.Drawing.Point(80, 42)
-    $lblD.Size = New-Object System.Drawing.Size(330, 18)
+    $lblD.Location = New-Object System.Drawing.Point(60, 38)
+    $lblD.Size = New-Object System.Drawing.Size(430, 18)
     $card.Controls.Add($lblD)
     
-    $btn = New-UnifiedButton -Text $ButtonText -X 530 -Y 22 -Width 120 -Height 42 -Style $ButtonStyle -OnClick $OnClick
+    $btn = New-UnifiedButton -Text $ButtonText -X 525 -Y 16 -Width 120 -Height 42 -Style $ButtonStyle -OnClick $OnClick
     $card.Controls.Add($btn)
     
     return $card
@@ -365,7 +278,7 @@ $mainForm.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 Enable-DoubleBuffering -Control $mainForm
 
 $headerPanel = New-Object System.Windows.Forms.Panel
-$headerPanel.Size = New-Object System.Drawing.Size(720, 100)
+$headerPanel.Size = New-Object System.Drawing.Size(720, 90)
 $headerPanel.Location = New-Object System.Drawing.Point(0, 0)
 $headerPanel.BackColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Surface)
 $headerPanel.Dock = [System.Windows.Forms.DockStyle]::Top
@@ -373,36 +286,36 @@ $mainForm.Controls.Add($headerPanel)
 
 $lblTitle = New-Object System.Windows.Forms.Label
 $lblTitle.Text = "CoralMC Alts Checker"
-$lblTitle.Font = New-Object System.Drawing.Font("Segoe UI", 22, [System.Drawing.FontStyle]::Bold)
+$lblTitle.Font = New-Object System.Drawing.Font("Segoe UI", 20, [System.Drawing.FontStyle]::Bold)
 $lblTitle.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Text)
 $lblTitle.AutoSize = $true
-$lblTitle.Location = New-Object System.Drawing.Point(20, 30)
+$lblTitle.Location = New-Object System.Drawing.Point(20, 25)
 $headerPanel.Controls.Add($lblTitle)
 
 $contentPanel = New-Object System.Windows.Forms.Panel
 $contentPanel.Size = New-Object System.Drawing.Size(700, 600)
-$contentPanel.Location = New-Object System.Drawing.Point(10, 110)
+$contentPanel.Location = New-Object System.Drawing.Point(5, 100)
 $contentPanel.BackColor = [System.Drawing.Color]::Transparent
 $contentPanel.AutoScroll = $true
 $mainForm.Controls.Add($contentPanel)
 
-# AGGIUNTA DELLE CARD NELLA SCHERMATA PRINCIPALE
-$card1 = New-ActionCard -Y 5 -IconChar "[>]" -IconColor $Theme.Primary -Title "Cerca file .log.gz" -Desc "Ricerca full-text nei file .log.gz compressi" -ButtonText "Avvia" -ButtonStyle "Primary" -OnClick { Start-LogGzSearch }
+# INSERIMENTO DELLE CARD CORRETTE NEL PANNELLO
+$card1 = New-ActionCard -Y 10  -IconChar "[>]" -IconColor $Theme.Primary -Title "Cerca file .log.gz" -Desc "Ricerca full-text nei file .log.gz compressi" -ButtonText "Avvia" -ButtonStyle "Primary" -OnClick { Start-LogGzSearch }
 $contentPanel.Controls.Add($card1)
 
-$card2 = New-ActionCard -Y 100 -IconChar "[i]" -IconColor $Theme.Accent -Title "Analizza USN Journal" -Desc "Analisi approfondita del journal USN (richiede Admin)" -ButtonText "Avvia" -ButtonStyle "Accent" -OnClick { Start-JournalRead }
+$card2 = New-ActionCard -Y 95  -IconChar "[i]" -IconColor $Theme.Accent -Title "Analizza USN Journal" -Desc "Analisi approfondita del journal USN (richiede Admin)" -ButtonText "Avvia" -ButtonStyle "Accent" -OnClick { Start-JournalRead }
 $contentPanel.Controls.Add($card2)
 
-$card3 = New-ActionCard -Y 195 -IconChar "[*]" -IconColor $Theme.Success -Title "Analisi Automatica" -Desc "Analizza nickname, server e stato login dai log" -ButtonText "Avvia" -ButtonStyle "Success" -OnClick { Start-AutoAnalyze }
+$card3 = New-ActionCard -Y 180 -IconChar "[*]" -IconColor $Theme.Success -Title "Analisi Automatica" -Desc "Analizza nickname, server e stato login dai log" -ButtonText "Avvia" -ButtonStyle "Success" -OnClick { Start-AutoAnalyze }
 $contentPanel.Controls.Add($card3)
 
-$card4 = New-ActionCard -Y 290 -IconChar "[!]" -IconColor $Theme.Warning -Title "Analisi Sistema" -Desc "Verifica integrita sistema e USN Journal" -ButtonText "Analizza" -ButtonStyle "Warning" -OnClick { Check-SystemIntegrity }
+$card4 = New-ActionCard -Y 265 -IconChar "[!]" -IconColor $Theme.Warning -Title "Analisi Sistema" -Desc "Verifica integrita sistema e USN Journal" -ButtonText "Analizza" -ButtonStyle "Warning" -OnClick { Check-SystemIntegrity }
 $contentPanel.Controls.Add($card4)
 
-$card5 = New-ActionCard -Y 385 -IconChar "[x]" -IconColor "#FF6B6B" -Title "Ultima modifica cestino" -Desc "Controlla l'ultima data di modifica del cestino" -ButtonText "Controlla" -ButtonStyle "Rose" -OnClick { Check-RecycleBin }
+$card5 = New-ActionCard -Y 350 -IconChar "[x]" -IconColor "#FF6B6B" -Title "Ultima modifica cestino" -Desc "Controlla l'ultima data di modifica del cestino" -ButtonText "Controlla" -ButtonStyle "Rose" -OnClick { Check-RecycleBin }
 $contentPanel.Controls.Add($card5)
 
-$card6 = New-ActionCard -Y 480 -IconChar "[#]" -IconColor "#FF6BFF" -Title "Registrazioni attive" -Desc "Controlla se sono attive registrazioni" -ButtonText "Controlla" -ButtonStyle "Magenta" -OnClick { Check-Recordings }
+$card6 = New-ActionCard -Y 435 -IconChar "[#]" -IconColor "#FF6BFF" -Title "Registrazioni attive" -Desc "Controlla se sono attive registrazioni" -ButtonText "Controlla" -ButtonStyle "Magenta" -OnClick { Check-Recordings }
 $contentPanel.Controls.Add($card6)
 
 function Start-LogGzSearch { [System.Windows.Forms.MessageBox]::Show("Funzione Cerca .log.gz", "Info") | Out-Null }
@@ -414,8 +327,8 @@ function Check-Recordings { [System.Windows.Forms.MessageBox]::Show("Funzione Re
 function Select-ScanScope { return @{ Mode = "All" } }
 
 $footerPanel = New-Object System.Windows.Forms.Panel
-$footerPanel.Size = New-Object System.Drawing.Size(720, 50)
-$footerPanel.Location = New-Object System.Drawing.Point(0, 745)
+$footerPanel.Size = New-Object System.Drawing.Size(720, 45)
+$footerPanel.Location = New-Object System.Drawing.Point(0, 715)
 $footerPanel.BackColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Surface)
 $footerPanel.Dock = [System.Windows.Forms.DockStyle]::Bottom
 $mainForm.Controls.Add($footerPanel)
@@ -424,7 +337,7 @@ $lblStatus = New-Object System.Windows.Forms.Label
 $lblStatus.Text = "Pronto e operativo"
 $lblStatus.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
 $lblStatus.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Success)
-$lblStatus.Location = New-Object System.Drawing.Point(20, 15)
+$lblStatus.Location = New-Object System.Drawing.Point(20, 12)
 $lblStatus.AutoSize = $true
 $footerPanel.Controls.Add($lblStatus)
 
