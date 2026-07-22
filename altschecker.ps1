@@ -13,9 +13,6 @@ Add-Type -AssemblyName System.Net.Http
 [System.Windows.Forms.Application]::EnableVisualStyles()
 [System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($false)
 
-# ========================================================================
-# FUNZIONE PULIZIA APPUNTI E CRONOLOGIA (WIN+V)
-# ========================================================================
 function Clear-WindowsClipboardHistory {
     try {
         [System.Windows.Forms.Clipboard]::Clear()
@@ -51,9 +48,6 @@ function Clear-WindowsClipboardHistory {
 
 Clear-WindowsClipboardHistory
 
-# ========================================================================
-# COLOR THEME - CoralMC Premium
-# ========================================================================
 $Theme = @{
     Background          = "#0B1B2B"
     Surface             = "#0F2140"
@@ -93,10 +87,6 @@ $PanelStyles = @{
     Surface = @{ BackColor = "#0F2140"; BorderColor = "#1A3A5A" }
     Card = @{ BackColor = "#1A2F50"; BorderColor = "#2A5A7A" }
 }
-
-# ========================================================================
-# FUNZIONI DI UTILITA
-# ========================================================================
 
 function Test-IsAdmin {
     $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
