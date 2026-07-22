@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
     CoralMC Alts Checker
     Premium Edition - Ocean Theme (Optimized Core)
@@ -2470,7 +2470,7 @@ function Select-ScanScope {
     $btnBrowse.FlatAppearance.BorderSize = 1
     $btnBrowse.FlatAppearance.BorderColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.BorderLight)
     $btnBrowse.FlatAppearance.MouseOverBackColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.SurfaceHover)
-    $btnBrowse.FlatAppearance.MouseDownBackColor = [System.Drawing.ColorPaint]::Dark([System.Drawing.ColorTranslator]::FromHtml($Theme.SurfaceLight), 0.15)
+    $btnBrowse.FlatAppearance.MouseDownBackColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.SurfaceHover)
     $btnBrowse.UseVisualStyleBackColor = $false
     $btnBrowse.Cursor = [System.Windows.Forms.Cursors]::Hand
     Set-RoundedCorners -Control $btnBrowse -Radius 6
