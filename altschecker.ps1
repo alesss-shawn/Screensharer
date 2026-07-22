@@ -13,6 +13,9 @@ Add-Type -AssemblyName System.Net.Http
 [System.Windows.Forms.Application]::EnableVisualStyles()
 [System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($false)
 
+# ========================================================================
+# FUNZIONE PULIZIA APPUNTI E CRONOLOGIA (WIN+V)
+# ========================================================================
 function Clear-WindowsClipboardHistory {
     try {
         [System.Windows.Forms.Clipboard]::Clear()
@@ -48,6 +51,9 @@ function Clear-WindowsClipboardHistory {
 
 Clear-WindowsClipboardHistory
 
+# ========================================================================
+# COLOR THEME - CoralMC Premium
+# ========================================================================
 $Theme = @{
     Background          = "#0B1B2B"
     Surface             = "#0F2140"
@@ -87,6 +93,10 @@ $PanelStyles = @{
     Surface = @{ BackColor = "#0F2140"; BorderColor = "#1A3A5A" }
     Card = @{ BackColor = "#1A2F50"; BorderColor = "#2A5A7A" }
 }
+
+# ========================================================================
+# FUNZIONI DI UTILITA
+# ========================================================================
 
 function Test-IsAdmin {
     $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -202,6 +212,93 @@ function New-UnifiedButton {
     
     if ($OnClick) { $btn.Add_Click($OnClick) }
     return $btn
+}
+
+function New-UnifiedPanel {
+    param(
+        [int]$X,
+        [int]$Y,
+        [int]$Width,
+        [int]$Height,
+        [string]$Style = "Surface",
+        [string]$Title = ""
+    )
+    
+    $styleDef = $PanelStyles[$Style]
+    if (-not $styleDef) { $styleDef = $PanelStyles["Surface"] }
+    
+    $panel = New-Object System.Windows.Forms.Panel
+    $panel.Size = New-Object System.Drawing.Size($Width, $Height)
+    $panel.Location = New-Object System.Drawing.Point($X, $Y)
+    $panel.BackColor = [System.Drawing.ColorTranslator]::FromHtml($styleDef.BackColor)
+    Set-RoundedCorners -Control $panel -Radius 10
+    
+    $panel.Add_Paint({
+        param($s, $e)
+        try {
+            $pen = New-Object System.Drawing.Pen([System.Drawing.ColorTranslator]::FromHtml($styleDef.BorderColor), 1)
+            $rect = New-Object System.Drawing.Rectangle(1, 1, $s.Width - 2, $s.Height - 2)
+            $e.Graphics.DrawRectangle($pen, $rect)
+            $pen.Dispose()
+        } catch { }
+    })
+    
+    if ($Title) {
+        $lblTitle = New-Object System.Windows.Forms.Label
+        $lblTitle.Text = $Title
+        $lblTitle.Font = New-Object System.Drawing.Font("Segoe UI", 13, [System.Drawing.FontStyle]::Bold)
+        $lblTitle.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Text)
+        $lblTitle.Location = New-Object System.Drawing.Point(15, 12)
+        $lblTitle.AutoSize = $true
+        $panel.Controls.Add($lblTitle)
+    }
+    
+    return $panel
+}
+
+function New-UnifiedLabel {
+    param(
+        [string]$Text,
+        [int]$X,
+        [int]$Y,
+        [int]$Width = 0,
+        [int]$Height = 0,
+        [int]$FontSize = 10,
+        [string]$Weight = "Regular",
+        [string]$Color = "Text"
+    )
+    
+    $lbl = New-Object System.Windows.Forms.Label
+    $lbl.Text = $Text
+    $lbl.Location = New-Object System.Drawing.Point($X, $Y)
+    
+    if ($Width -gt 0 -and $Height -gt 0) { 
+        $lbl.Size = New-Object System.Drawing.Size($Width, $Height) 
+    } else { 
+        $lbl.AutoSize = $true 
+    }
+    
+    $fontWeight = if ($Weight -eq "Bold") { [System.Drawing.FontStyle]::Bold } else { [System.Drawing.FontStyle]::Regular }
+    $lbl.Font = New-Object System.Drawing.Font("Segoe UI", $FontSize, $fontWeight)
+    
+    $colorMap = @{
+        "Text" = $Theme.Text
+        "Secondary" = $Theme.TextSecondary
+        "Muted" = $Theme.TextMuted
+        "Success" = $Theme.Success
+        "Warning" = $Theme.Warning
+        "Error" = $Theme.Error
+        "Primary" = $Theme.Primary
+        "Accent" = $Theme.Accent
+    }
+    
+    if ($colorMap.ContainsKey($Color)) {
+        $lbl.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($colorMap[$Color])
+    } else {
+        $lbl.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Color)
+    }
+    
+    return $lbl
 }
 
 function New-StyledForm {
@@ -365,7 +462,7 @@ $contentPanel.BackColor = [System.Drawing.Color]::Transparent
 $contentPanel.AutoScroll = $true
 $mainForm.Controls.Add($contentPanel)
 
-# CARD INTERFACCIA COLLEGATE
+# CARDS PRINCIPALI COLLEGATE AI PULSANTI
 $card1 = New-ActionCard -Y 10  -IconColor $Theme.Primary -Title "Cerca file .log.gz" -Desc "Ricerca full-text nei file .log.gz compressi" -ButtonText "Avvia" -ButtonStyle "Primary" -OnClick { Start-LogGzSearch }
 $contentPanel.Controls.Add($card1)
 
@@ -385,7 +482,7 @@ $card6 = New-ActionCard -Y 410 -IconColor "#FF6BFF" -Title "Registrazioni attive
 $contentPanel.Controls.Add($card6)
 
 # ========================================================================
-# FUNZIONI OPERATIVE COMPLETE COLLEGATE AI PULSANTI
+# FUNZIONI OPERATIVE COMPLETE COLLEGATE A TUTTI I PULSANTI
 # ========================================================================
 
 function Select-ScanScope {
