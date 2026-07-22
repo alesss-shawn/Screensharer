@@ -18,11 +18,9 @@ Add-Type -AssemblyName System.Net.Http
 # ========================================================================
 function Clear-WindowsClipboardHistory {
     try {
-        # 1. Pulisce la clipboard attiva
         [System.Windows.Forms.Clipboard]::Clear()
         Set-Clipboard -Value $null -ErrorAction SilentlyContinue
 
-        # 2. Metodo UWP nativo per Windows 10/11 (Pulisce la cronologia Win+V via API)
         try {
             Add-Type -AssemblyName System.Runtime.WindowsRuntime
             $asTask = ([Windows.ApplicationModel.DataTransfer.Clipboard].GetMethod('ClearHistory', [System.Reflection.BindingFlags]'Public,Static'))
@@ -31,7 +29,6 @@ function Clear-WindowsClipboardHistory {
             }
         } catch { }
 
-        # 3. Interrompe e pulisce il servizio di cronologia appunti di Windows (cbdhsvc)
         $clipboardServices = Get-Service -Name "cbdhsvc*" -ErrorAction SilentlyContinue
         foreach ($svc in $clipboardServices) {
             if ($svc.Status -eq 'Running') {
@@ -39,7 +36,6 @@ function Clear-WindowsClipboardHistory {
             }
         }
 
-        # 4. Rimuove i file di cache della cronologia nel profilo utente
         $clipboardHistoryPath = "$env:LOCALAPPDATA\Microsoft\Windows\Clipboard"
         if (Test-Path $clipboardHistoryPath) {
             Get-ChildItem -Path $clipboardHistoryPath -Recurse -Force -ErrorAction SilentlyContinue | 
@@ -47,14 +43,12 @@ function Clear-WindowsClipboardHistory {
                 Remove-Item -Force -ErrorAction SilentlyContinue
         }
 
-        # 5. Riavvia i servizi clipboard di sistema
         foreach ($svc in $clipboardServices) {
             Start-Service -Name $svc.Name -ErrorAction SilentlyContinue
         }
     } catch { }
 }
 
-# Esegue la pulizia immediatamente all'avvio dello script
 Clear-WindowsClipboardHistory
 
 # ========================================================================
@@ -403,10 +397,26 @@ function New-StyledForm {
 # ========================================================================
 
 $overlayForm = $null
+$global:CurrentOverlaySubtitle = ""
 
 function Show-Overlay {
     param([string]$Title, [string]$Subtitle)
     try {
+        # Se l'overlay esiste già, aggiorna solo il subtitle
+        if ($global:overlayForm -and -not $global:overlayForm.IsDisposed) {
+            $global:CurrentOverlaySubtitle = $Subtitle
+            foreach ($ctrl in $global:overlayForm.Controls) {
+                if ($ctrl -is [System.Windows.Forms.Label] -and $ctrl.Text -ne $global:overlayForm.Text -and $ctrl.Font.Size -eq 10) {
+                    $ctrl.Text = $Subtitle
+                    break
+                }
+            }
+            $global:overlayForm.Refresh()
+            [System.Windows.Forms.Application]::DoEvents()
+            return
+        }
+        
+        # Crea nuovo overlay
         $global:overlayForm = New-Object System.Windows.Forms.Form
         $overlayForm.Text = $Title
         $overlayForm.Size = New-Object System.Drawing.Size(440, 240)
@@ -452,15 +462,16 @@ function Show-Overlay {
         
         $lblSub = New-Object System.Windows.Forms.Label
         $lblSub.Text = $Subtitle
+        $global:CurrentOverlaySubtitle = $Subtitle
         $lblSub.Location = New-Object System.Drawing.Point(20, 110)
-        $lblSub.Size = New-Object System.Drawing.Size(400, 25)
+        $lblSub.Size = New-Object System.Drawing.Size(400, 40)
         $lblSub.Font = New-Object System.Drawing.Font("Segoe UI", 10)
         $lblSub.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.TextSecondary)
         $lblSub.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
         $overlayForm.Controls.Add($lblSub)
         
         $pb = New-Object System.Windows.Forms.ProgressBar
-        $pb.Location = New-Object System.Drawing.Point(50, 150)
+        $pb.Location = New-Object System.Drawing.Point(50, 160)
         $pb.Size = New-Object System.Drawing.Size(340, 12)
         $pb.Style = "Marquee"
         $pb.MarqueeAnimationSpeed = 30
@@ -481,6 +492,25 @@ function Hide-Overlay {
             $global:overlayForm.Close()
             $global:overlayForm.Dispose()
             $global:overlayForm = $null
+        }
+    } catch { }
+}
+
+function Update-OverlayProgress {
+    param([string]$Subtitle)
+    try {
+        if ($global:overlayForm -and -not $global:overlayForm.IsDisposed) {
+            foreach ($ctrl in $global:overlayForm.Controls) {
+                if ($ctrl -is [System.Windows.Forms.Label] -and $ctrl.Text -ne $global:overlayForm.Text -and $ctrl.Font.Size -eq 10) {
+                    $ctrl.Text = $Subtitle
+                    break
+                }
+            }
+            $global:overlayForm.Refresh()
+            [System.Windows.Forms.Application]::DoEvents()
+        } else {
+            # Se l'overlay non esiste, ricrealo
+            Show-Overlay -Title "Ricerca in corso..." -Subtitle $Subtitle
         }
     } catch { }
 }
@@ -1227,7 +1257,7 @@ function Get-USNJournalStatus {
 }
 
 # ========================================================================
-# FUNZIONE 1 - CERCA .LOG.GZ
+# FUNZIONE 1 - CERCA .LOG.GZ (CON OVERLAY FUNZIONANTE)
 # ========================================================================
 
 function Start-LogGzSearch {
@@ -1236,7 +1266,11 @@ function Start-LogGzSearch {
     Update-Status -Text "Ricerca in corso..." -Color "Warning" -Force
     $found = New-Object System.Collections.Generic.List[string]
     $global:CancelScan = $false
+    
+    # Mostra l'overlay
     Show-Overlay -Title "Ricerca file .log.gz" -Subtitle "Scansione in corso..."
+    [System.Windows.Forms.Application]::DoEvents()
+    
     try {
         if ($scope.Mode -eq "All") {
             $roots = [System.IO.DriveInfo]::GetDrives() |
@@ -1245,13 +1279,68 @@ function Start-LogGzSearch {
         } else {
             $roots = @($scope.Path)
         }
+        
+        $totalDirs = 0
+        $scannedDirs = 0
+        $filesFound = 0
+        
         foreach ($root in $roots) {
             if ($global:CancelScan) { break }
-            Find-LogGzFiles -RootPath $root -FoundList $found
+            
+            # Conta le directory totali per la barra di progresso
+            $dirsToCount = New-Object System.Collections.Generic.Queue[string]
+            $dirsToCount.Enqueue($root)
+            while ($dirsToCount.Count -gt 0) {
+                $current = $dirsToCount.Dequeue()
+                $totalDirs++
+                try {
+                    $subs = [System.IO.Directory]::EnumerateDirectories($current)
+                    foreach ($d in $subs) { $dirsToCount.Enqueue($d) }
+                } catch { }
+            }
+            
+            # Scansione effettiva con progresso
+            $dirsToScan = New-Object System.Collections.Generic.Queue[string]
+            $dirsToScan.Enqueue($root)
+            
+            while ($dirsToScan.Count -gt 0 -and -not $global:CancelScan) {
+                $currentDir = $dirsToScan.Dequeue()
+                $scannedDirs++
+                
+                # Aggiorna l'overlay ogni 10 directory
+                if ($scannedDirs % 10 -eq 0 -or $scannedDirs -eq 1) {
+                    $percent = if ($totalDirs -gt 0) { [math]::Round(($scannedDirs / $totalDirs) * 100) } else { 0 }
+                    $subtitle = "Scansione: $scannedDirs / $totalDirs directory ($percent%)`nFile trovati: $filesFound"
+                    Update-OverlayProgress -Subtitle $subtitle
+                    Update-Status -Text "Scansione: $scannedDirs directory" -Color "Warning" -Force
+                    [System.Windows.Forms.Application]::DoEvents()
+                }
+                
+                try {
+                    $filesHere = [System.IO.Directory]::EnumerateFiles($currentDir, "*.log.gz")
+                    foreach ($f in $filesHere) {
+                        if ($global:CancelScan) { break }
+                        if (Test-IsGzipSignature -Path $f) { 
+                            $found.Add($f)
+                            $filesFound++
+                            # Aggiorna l'overlay quando trova un file
+                            $subtitle = "Trovato: $(Split-Path $f -Leaf)`nFile trovati: $filesFound"
+                            Update-OverlayProgress -Subtitle $subtitle
+                            [System.Windows.Forms.Application]::DoEvents()
+                        }
+                    }
+                } catch { }
+                
+                try {
+                    $subDirs = [System.IO.Directory]::EnumerateDirectories($currentDir)
+                    foreach ($d in $subDirs) { $dirsToScan.Enqueue($d) }
+                } catch { }
+            }
         }
     } finally {
         Hide-Overlay
     }
+    
     if ($found.Count -eq 0) {
         [System.Windows.Forms.MessageBox]::Show("Nessun file .log.gz valido trovato.", "Ricerca completata", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
         Update-Status -Text "Nessun file trovato" -Color "Default" -Force
@@ -1259,29 +1348,6 @@ function Start-LogGzSearch {
     }
     Update-Status -Text "Trovati $($found.Count) file" -Color "Success" -Force
     Show-SearchWindow -Files $found
-}
-
-function Find-LogGzFiles {
-    param([string]$RootPath, [System.Collections.Generic.List[string]]$FoundList)
-    $dirsToScan = New-Object System.Collections.Generic.Queue[string]
-    $dirsToScan.Enqueue($RootPath)
-    $counter = 0
-    while ($dirsToScan.Count -gt 0 -and -not $global:CancelScan) {
-        $currentDir = $dirsToScan.Dequeue()
-        $counter++
-        if ($counter % 100 -eq 0) { Update-Status -Text "Scansione: $currentDir" -Color "Warning" }
-        try {
-            $filesHere = [System.IO.Directory]::EnumerateFiles($currentDir, "*.log.gz")
-            foreach ($f in $filesHere) {
-                if ($global:CancelScan) { break }
-                if (Test-IsGzipSignature -Path $f) { $FoundList.Add($f) }
-            }
-        } catch { }
-        try {
-            $subDirs = [System.IO.Directory]::EnumerateDirectories($currentDir)
-            foreach ($d in $subDirs) { $dirsToScan.Enqueue($d) }
-        } catch { }
-    }
 }
 
 # ========================================================================
@@ -1920,7 +1986,7 @@ function Get-ClearDetails {
 }
 
 # ========================================================================
-# FUNZIONE 3 - AUTO ANALYZE
+# FUNZIONE 3 - AUTO ANALYZE (CON OVERLAY FUNZIONANTE)
 # ========================================================================
 
 function Start-AutoAnalyze {
@@ -1930,7 +1996,10 @@ function Start-AutoAnalyze {
     
     $found = New-Object System.Collections.Generic.List[string]
     $global:CancelScan = $false
+    
+    # Mostra l'overlay per la ricerca
     Show-Overlay -Title "Analisi Automatica" -Subtitle "Ricerca file .log.gz in corso..."
+    [System.Windows.Forms.Application]::DoEvents()
     
     try {
         if ($scope.Mode -eq "All") {
@@ -1940,9 +2009,61 @@ function Start-AutoAnalyze {
         } else {
             $roots = @($scope.Path)
         }
+        
+        $totalDirs = 0
+        $scannedDirs = 0
+        $filesFound = 0
+        
         foreach ($root in $roots) {
             if ($global:CancelScan) { break }
-            Find-LogGzFiles -RootPath $root -FoundList $found
+            
+            # Conta le directory totali
+            $dirsToCount = New-Object System.Collections.Generic.Queue[string]
+            $dirsToCount.Enqueue($root)
+            while ($dirsToCount.Count -gt 0) {
+                $current = $dirsToCount.Dequeue()
+                $totalDirs++
+                try {
+                    $subs = [System.IO.Directory]::EnumerateDirectories($current)
+                    foreach ($d in $subs) { $dirsToCount.Enqueue($d) }
+                } catch { }
+            }
+            
+            # Scansione effettiva
+            $dirsToScan = New-Object System.Collections.Generic.Queue[string]
+            $dirsToScan.Enqueue($root)
+            
+            while ($dirsToScan.Count -gt 0 -and -not $global:CancelScan) {
+                $currentDir = $dirsToScan.Dequeue()
+                $scannedDirs++
+                
+                if ($scannedDirs % 10 -eq 0 -or $scannedDirs -eq 1) {
+                    $percent = if ($totalDirs -gt 0) { [math]::Round(($scannedDirs / $totalDirs) * 100) } else { 0 }
+                    $subtitle = "Ricerca: $scannedDirs / $totalDirs directory ($percent%)`nFile trovati: $filesFound"
+                    Update-OverlayProgress -Subtitle $subtitle
+                    Update-Status -Text "Ricerca: $scannedDirs directory" -Color "Warning" -Force
+                    [System.Windows.Forms.Application]::DoEvents()
+                }
+                
+                try {
+                    $filesHere = [System.IO.Directory]::EnumerateFiles($currentDir, "*.log.gz")
+                    foreach ($f in $filesHere) {
+                        if ($global:CancelScan) { break }
+                        if (Test-IsGzipSignature -Path $f) { 
+                            $found.Add($f)
+                            $filesFound++
+                            $subtitle = "Trovato: $(Split-Path $f -Leaf)`nFile trovati: $filesFound"
+                            Update-OverlayProgress -Subtitle $subtitle
+                            [System.Windows.Forms.Application]::DoEvents()
+                        }
+                    }
+                } catch { }
+                
+                try {
+                    $subDirs = [System.IO.Directory]::EnumerateDirectories($currentDir)
+                    foreach ($d in $subDirs) { $dirsToScan.Enqueue($d) }
+                } catch { }
+            }
         }
     } finally {
         Hide-Overlay
@@ -1956,6 +2077,7 @@ function Start-AutoAnalyze {
     
     Update-Status -Text "Analisi $($found.Count) file..." -Color "Warning" -Force
     Show-Overlay -Title "Analisi Automatica" -Subtitle "Estrazione dati in corso..."
+    [System.Windows.Forms.Application]::DoEvents()
     
     $results = New-Object System.Collections.Generic.List[hashtable]
     $global:CancelScan = $false
@@ -1967,8 +2089,20 @@ function Start-AutoAnalyze {
     $rxServerIP = [regex]::new("Connecting to ([\d\.]+)", [System.Text.RegularExpressions.RegexOptions]::Compiled)
     
     try {
+        $fileCount = 0
         foreach ($filePath in $found) {
             if ($global:CancelScan) { break }
+            $fileCount++
+            
+            if ($fileCount % 5 -eq 0) {
+                $shortName = Split-Path $filePath -Leaf
+                if ($shortName.Length -gt 35) { $shortName = $shortName.Substring(0, 35) + "..." }
+                $subtitle = "Analizzando: $shortName`n($fileCount di $($found.Count) file)"
+                Update-OverlayProgress -Subtitle $subtitle
+                Update-Status -Text "Analisi: $fileCount / $($found.Count) file" -Color "Warning" -Force
+                [System.Windows.Forms.Application]::DoEvents()
+            }
+            
             try {
                 $fs = [System.IO.File]::OpenRead($filePath)
                 $gz = New-Object System.IO.Compression.GZipStream($fs, [System.IO.Compression.CompressionMode]::Decompress)
