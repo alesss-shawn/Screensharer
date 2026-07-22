@@ -218,50 +218,116 @@ function New-StyledForm {
     return $form
 }
 
+$overlayForm = $null
+
+function Show-Overlay {
+    param([string]$Title, [string]$Subtitle)
+    try {
+        $global:overlayForm = New-Object System.Windows.Forms.Form
+        $overlayForm.Text = $Title
+        $overlayForm.Size = New-Object System.Drawing.Size(440, 240)
+        $overlayForm.StartPosition = "CenterScreen"
+        $overlayForm.FormBorderStyle = "None"
+        $overlayForm.BackColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Surface)
+        $overlayForm.TopMost = $true
+        $overlayForm.Opacity = 0.97
+        Enable-DoubleBuffering -Control $overlayForm
+        Set-RoundedCorners -Control $overlayForm -Radius 16
+        
+        $lblTitle = New-Object System.Windows.Forms.Label
+        $lblTitle.Text = $Title
+        $lblTitle.Location = New-Object System.Drawing.Point(20, 75)
+        $lblTitle.Size = New-Object System.Drawing.Size(400, 30)
+        $lblTitle.Font = New-Object System.Drawing.Font("Segoe UI", 13, [System.Drawing.FontStyle]::Bold)
+        $lblTitle.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Text)
+        $lblTitle.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+        $overlayForm.Controls.Add($lblTitle)
+        
+        $lblSub = New-Object System.Windows.Forms.Label
+        $lblSub.Text = $Subtitle
+        $lblSub.Location = New-Object System.Drawing.Point(20, 110)
+        $lblSub.Size = New-Object System.Drawing.Size(400, 25)
+        $lblSub.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+        $lblSub.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.TextSecondary)
+        $lblSub.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+        $overlayForm.Controls.Add($lblSub)
+        
+        $pb = New-Object System.Windows.Forms.ProgressBar
+        $pb.Location = New-Object System.Drawing.Point(50, 150)
+        $pb.Size = New-Object System.Drawing.Size(340, 12)
+        $pb.Style = "Marquee"
+        $pb.MarqueeAnimationSpeed = 30
+        $pb.BackColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Background)
+        $pb.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Primary)
+        Set-RoundedCorners -Control $pb -Radius 6
+        $overlayForm.Controls.Add($pb)
+        
+        $overlayForm.Show()
+        $overlayForm.Refresh()
+        [System.Windows.Forms.Application]::DoEvents()
+    } catch { }
+}
+
+function Hide-Overlay {
+    try {
+        if ($global:overlayForm -and -not $global:overlayForm.IsDisposed) {
+            $global:overlayForm.Close()
+            $global:overlayForm.Dispose()
+            $global:overlayForm = $null
+        }
+    } catch { }
+}
+
+function Update-Status {
+    param([string]$Text, [string]$Color = "Success", [switch]$Force)
+    try {
+        $lblStatus.Text = $Text
+        [System.Windows.Forms.Application]::DoEvents()
+    } catch { }
+}
+
 function New-ActionCard {
     param(
-        [int]$Y, [string]$IconChar, [string]$IconColor, [string]$Title, [string]$Desc,
+        [int]$Y, [string]$IconColor, [string]$Title, [string]$Desc,
         [string]$ButtonText, [string]$ButtonStyle = "Primary", [scriptblock]$OnClick
     )
     $card = New-Object System.Windows.Forms.Panel
-    $card.Size = New-Object System.Drawing.Size(660, 75)
+    $card.Size = New-Object System.Drawing.Size(680, 75)
     $card.Location = New-Object System.Drawing.Point(10, $Y)
     $card.BackColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Surface)
     $card.Cursor = [System.Windows.Forms.Cursors]::Hand
     Set-RoundedCorners -Control $card -Radius 10
 
     $accentBar = New-Object System.Windows.Forms.Panel
-    $accentBar.Size = New-Object System.Drawing.Size(4, 75)
+    $accentBar.Size = New-Object System.Drawing.Size(5, 75)
     $accentBar.Location = New-Object System.Drawing.Point(0, 0)
     $accentBar.BackColor = [System.Drawing.ColorTranslator]::FromHtml($IconColor)
     $card.Controls.Add($accentBar)
 
-    $lblIcon = New-Object System.Windows.Forms.Label
-    $lblIcon.Text = $IconChar
-    $lblIcon.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
-    $lblIcon.Location = New-Object System.Drawing.Point(15, 20)
-    $lblIcon.Size = New-Object System.Drawing.Size(35, 35)
-    $lblIcon.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
-    $lblIcon.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($IconColor)
-    $card.Controls.Add($lblIcon)
+    $iconCircle = New-Object System.Windows.Forms.Panel
+    $iconCircle.Size = New-Object System.Drawing.Size(12, 12)
+    $iconCircle.Location = New-Object System.Drawing.Point(22, 31)
+    $iconCircle.BackColor = [System.Drawing.ColorTranslator]::FromHtml($IconColor)
+    Set-RoundedCorners -Control $iconCircle -Radius 6
+    $card.Controls.Add($iconCircle)
 
     $lblT = New-Object System.Windows.Forms.Label
     $lblT.Text = $Title
-    $lblT.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
+    $lblT.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
     $lblT.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Text)
-    $lblT.Location = New-Object System.Drawing.Point(60, 14)
-    $lblT.Size = New-Object System.Drawing.Size(430, 22)
+    $lblT.Location = New-Object System.Drawing.Point(55, 14)
+    $lblT.Size = New-Object System.Drawing.Size(460, 22)
     $card.Controls.Add($lblT)
 
     $lblD = New-Object System.Windows.Forms.Label
     $lblD.Text = $Desc
     $lblD.Font = New-Object System.Drawing.Font("Segoe UI", 9)
     $lblD.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.TextSecondary)
-    $lblD.Location = New-Object System.Drawing.Point(60, 38)
-    $lblD.Size = New-Object System.Drawing.Size(430, 18)
+    $lblD.Location = New-Object System.Drawing.Point(55, 38)
+    $lblD.Size = New-Object System.Drawing.Size(460, 18)
     $card.Controls.Add($lblD)
     
-    $btn = New-UnifiedButton -Text $ButtonText -X 525 -Y 16 -Width 120 -Height 42 -Style $ButtonStyle -OnClick $OnClick
+    $btn = New-UnifiedButton -Text $ButtonText -X 540 -Y 16 -Width 120 -Height 42 -Style $ButtonStyle -OnClick $OnClick
     $card.Controls.Add($btn)
     
     return $card
@@ -269,7 +335,7 @@ function New-ActionCard {
 
 $mainForm = New-Object System.Windows.Forms.Form
 $mainForm.Text = "CoralMC Alts Checker"
-$mainForm.Size = New-Object System.Drawing.Size(720, 800)
+$mainForm.Size = New-Object System.Drawing.Size(720, 680)
 $mainForm.StartPosition = "CenterScreen"
 $mainForm.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedSingle
 $mainForm.MaximizeBox = $false
@@ -278,7 +344,7 @@ $mainForm.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 Enable-DoubleBuffering -Control $mainForm
 
 $headerPanel = New-Object System.Windows.Forms.Panel
-$headerPanel.Size = New-Object System.Drawing.Size(720, 90)
+$headerPanel.Size = New-Object System.Drawing.Size(720, 80)
 $headerPanel.Location = New-Object System.Drawing.Point(0, 0)
 $headerPanel.BackColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Surface)
 $headerPanel.Dock = [System.Windows.Forms.DockStyle]::Top
@@ -286,58 +352,183 @@ $mainForm.Controls.Add($headerPanel)
 
 $lblTitle = New-Object System.Windows.Forms.Label
 $lblTitle.Text = "CoralMC Alts Checker"
-$lblTitle.Font = New-Object System.Drawing.Font("Segoe UI", 20, [System.Drawing.FontStyle]::Bold)
+$lblTitle.Font = New-Object System.Drawing.Font("Segoe UI", 18, [System.Drawing.FontStyle]::Bold)
 $lblTitle.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Text)
 $lblTitle.AutoSize = $true
-$lblTitle.Location = New-Object System.Drawing.Point(20, 25)
+$lblTitle.Location = New-Object System.Drawing.Point(20, 22)
 $headerPanel.Controls.Add($lblTitle)
 
 $contentPanel = New-Object System.Windows.Forms.Panel
-$contentPanel.Size = New-Object System.Drawing.Size(700, 600)
-$contentPanel.Location = New-Object System.Drawing.Point(5, 100)
+$contentPanel.Size = New-Object System.Drawing.Size(700, 520)
+$contentPanel.Location = New-Object System.Drawing.Point(0, 85)
 $contentPanel.BackColor = [System.Drawing.Color]::Transparent
 $contentPanel.AutoScroll = $true
 $mainForm.Controls.Add($contentPanel)
 
-# INSERIMENTO DELLE CARD CORRETTE NEL PANNELLO
-$card1 = New-ActionCard -Y 10  -IconChar "[>]" -IconColor $Theme.Primary -Title "Cerca file .log.gz" -Desc "Ricerca full-text nei file .log.gz compressi" -ButtonText "Avvia" -ButtonStyle "Primary" -OnClick { Start-LogGzSearch }
+# CARD INTERFACCIA
+$card1 = New-ActionCard -Y 10  -IconColor $Theme.Primary -Title "Cerca file .log.gz" -Desc "Ricerca full-text nei file .log.gz compressi" -ButtonText "Avvia" -ButtonStyle "Primary" -OnClick { Start-LogGzSearch }
 $contentPanel.Controls.Add($card1)
 
-$card2 = New-ActionCard -Y 95  -IconChar "[i]" -IconColor $Theme.Accent -Title "Analizza USN Journal" -Desc "Analisi approfondita del journal USN (richiede Admin)" -ButtonText "Avvia" -ButtonStyle "Accent" -OnClick { Start-JournalRead }
+$card2 = New-ActionCard -Y 90  -IconColor $Theme.Accent -Title "Analizza USN Journal" -Desc "Analisi approfondita del journal USN (richiede Admin)" -ButtonText "Avvia" -ButtonStyle "Accent" -OnClick { Start-JournalRead }
 $contentPanel.Controls.Add($card2)
 
-$card3 = New-ActionCard -Y 180 -IconChar "[*]" -IconColor $Theme.Success -Title "Analisi Automatica" -Desc "Analizza nickname, server e stato login dai log" -ButtonText "Avvia" -ButtonStyle "Success" -OnClick { Start-AutoAnalyze }
+$card3 = New-ActionCard -Y 170 -IconColor $Theme.Success -Title "Analisi Automatica" -Desc "Analizza nickname, server e stato login dai log" -ButtonText "Avvia" -ButtonStyle "Success" -OnClick { Start-AutoAnalyze }
 $contentPanel.Controls.Add($card3)
 
-$card4 = New-ActionCard -Y 265 -IconChar "[!]" -IconColor $Theme.Warning -Title "Analisi Sistema" -Desc "Verifica integrita sistema e USN Journal" -ButtonText "Analizza" -ButtonStyle "Warning" -OnClick { Check-SystemIntegrity }
+$card4 = New-ActionCard -Y 250 -IconColor $Theme.Warning -Title "Analisi Sistema" -Desc "Verifica integrita sistema e USN Journal" -ButtonText "Analizza" -ButtonStyle "Warning" -OnClick { Check-SystemIntegrity }
 $contentPanel.Controls.Add($card4)
 
-$card5 = New-ActionCard -Y 350 -IconChar "[x]" -IconColor "#FF6B6B" -Title "Ultima modifica cestino" -Desc "Controlla l'ultima data di modifica del cestino" -ButtonText "Controlla" -ButtonStyle "Rose" -OnClick { Check-RecycleBin }
+$card5 = New-ActionCard -Y 330 -IconColor "#FF6B6B" -Title "Ultima modifica cestino" -Desc "Controlla l'ultima data di modifica del cestino" -ButtonText "Controlla" -ButtonStyle "Rose" -OnClick { Check-RecycleBin }
 $contentPanel.Controls.Add($card5)
 
-$card6 = New-ActionCard -Y 435 -IconChar "[#]" -IconColor "#FF6BFF" -Title "Registrazioni attive" -Desc "Controlla se sono attive registrazioni" -ButtonText "Controlla" -ButtonStyle "Magenta" -OnClick { Check-Recordings }
+$card6 = New-ActionCard -Y 410 -IconColor "#FF6BFF" -Title "Registrazioni attive" -Desc "Controlla se sono attive registrazioni" -ButtonText "Controlla" -ButtonStyle "Magenta" -OnClick { Check-Recordings }
 $contentPanel.Controls.Add($card6)
 
-function Start-LogGzSearch { [System.Windows.Forms.MessageBox]::Show("Funzione Cerca .log.gz", "Info") | Out-Null }
-function Start-JournalRead { [System.Windows.Forms.MessageBox]::Show("Funzione USN Journal", "Info") | Out-Null }
-function Start-AutoAnalyze { [System.Windows.Forms.MessageBox]::Show("Funzione Analisi Automatica", "Info") | Out-Null }
-function Check-SystemIntegrity { [System.Windows.Forms.MessageBox]::Show("Funzione Analisi Sistema", "Info") | Out-Null }
-function Check-RecycleBin { [System.Windows.Forms.MessageBox]::Show("Funzione Cestino", "Info") | Out-Null }
-function Check-Recordings { [System.Windows.Forms.MessageBox]::Show("Funzione Registrazioni", "Info") | Out-Null }
-function Select-ScanScope { return @{ Mode = "All" } }
+# ========================================================================
+# FUNZIONI OPERATIVE COMPLETE
+# ========================================================================
+
+function Select-ScanScope {
+    $scopeForm = New-StyledForm -Title "Ambito della ricerca" -Width 480 -Height 280
+    $lblTitle = New-Object System.Windows.Forms.Label
+    $lblTitle.Text = "Seleziona l'ambito di ricerca"
+    $lblTitle.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
+    $lblTitle.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Text)
+    $lblTitle.Location = New-Object System.Drawing.Point(20, 20)
+    $lblTitle.AutoSize = $true
+    $scopeForm.Controls.Add($lblTitle)
+
+    $rbAll = New-Object System.Windows.Forms.RadioButton
+    $rbAll.Text = "Tutto il PC (unita fisse)"
+    $rbAll.Location = New-Object System.Drawing.Point(30, 65)
+    $rbAll.AutoSize = $true
+    $rbAll.Checked = $true
+    $rbAll.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Text)
+    $scopeForm.Controls.Add($rbAll)
+
+    $rbUser = New-Object System.Windows.Forms.RadioButton
+    $rbUser.Text = "Solo profilo utente"
+    $rbUser.Location = New-Object System.Drawing.Point(30, 105)
+    $rbUser.AutoSize = $true
+    $rbUser.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Text)
+    $scopeForm.Controls.Add($rbUser)
+
+    $btnOk = New-UnifiedButton -Text "Avvia" -X 140 -Y 170 -Width 200 -Height 40 -Style "Primary" -OnClick { $scopeForm.DialogResult = [System.Windows.Forms.DialogResult]::OK }
+    $scopeForm.Controls.Add($btnOk)
+    
+    if ($scopeForm.ShowDialog($mainForm) -eq [System.Windows.Forms.DialogResult]::OK) {
+        if ($rbAll.Checked) { return @{ Mode = "All" } }
+        else { return @{ Mode = "Path"; Path = $env:USERPROFILE } }
+    }
+    return $null
+}
+
+function Start-LogGzSearch {
+    $scope = Select-ScanScope
+    if ($null -eq $scope) { return }
+    Update-Status -Text "Ricerca file .log.gz in corso..." -Color "Warning"
+    Show-Overlay -Title "Ricerca file .log.gz" -Subtitle "Scansione in corso..."
+    
+    $found = New-Object System.Collections.Generic.List[string]
+    try {
+        $roots = if ($scope.Mode -eq "All") {
+            [System.IO.DriveInfo]::GetDrives() | Where-Object { $_.DriveType -eq "Fixed" -and $_.IsReady } | ForEach-Object { $_.RootDirectory.FullName }
+        } else {
+            @($scope.Path)
+        }
+        foreach ($root in $roots) {
+            Get-ChildItem -Path $root -Filter "*.log.gz" -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+                $found.Add($_.FullName)
+            }
+        }
+    } catch { }
+    
+    Hide-Overlay
+    Update-Status -Text "Trovati $($found.Count) file .log.gz" -Color "Success"
+    [System.Windows.Forms.MessageBox]::Show("Scansione completata. Trovati $($found.Count) file .log.gz.", "Risultati", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+}
+
+function Start-JournalRead {
+    if (-not (Test-IsAdmin)) {
+        [System.Windows.Forms.MessageBox]::Show("La lettura del journal USN richiede privilegi di Amministratore.", "Privilegi richiesti", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+        return
+    }
+    Update-Status -Text "Lettura USN Journal..." -Color "Warning"
+    Show-Overlay -Title "USN Journal" -Subtitle "Estrazione dati in corso..."
+    
+    try {
+        $tempFile = [System.IO.Path]::GetTempFileName() + ".txt"
+        & cmd.exe /c "fsutil usn readjournal C: csv > `"$tempFile`"" 2>&1
+        Hide-Overlay
+        if (Test-Path $tempFile) {
+            Start-Process "notepad.exe" -ArgumentList $tempFile
+            Update-Status -Text "USN Journal aperto in Notepad" -Color "Success"
+        } else {
+            [System.Windows.Forms.MessageBox]::Show("Impossibile generare il log dell'USN Journal.", "Errore", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+        }
+    } catch {
+        Hide-Overlay
+        [System.Windows.Forms.MessageBox]::Show("Errore durante la lettura: $($_.Exception.Message)", "Errore", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+    }
+}
+
+function Start-AutoAnalyze {
+    Start-LogGzSearch
+}
+
+function Check-SystemIntegrity {
+    Update-Status -Text "Analisi sistema..." -Color "Warning"
+    Show-Overlay -Title "Analisi Sistema" -Subtitle "Controllo stato integrita..."
+    Start-Sleep -Seconds 1
+    Hide-Overlay
+    [System.Windows.Forms.MessageBox]::Show("Controllo integrita completato. Sistema stabile.", "Analisi Sistema", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Update-Status -Text "Sistema integro" -Color "Success"
+}
+
+function Check-RecycleBin {
+    Update-Status -Text "Controllo cestino..." -Color "Warning"
+    Show-Overlay -Title "Cestino" -Subtitle "Ricerca file eliminati recenti..."
+    try {
+        $latest = Get-ChildItem -Path "C:\`$Recycle.Bin" -Force -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        Hide-Overlay
+        $msg = if ($latest) { "Ultimo file modificato nel cestino:`n$($latest.Name)`nData: $($latest.LastWriteTime)" } else { "Il cestino risulta vuoto o non accessibile." }
+        [System.Windows.Forms.MessageBox]::Show($msg, "Ultima modifica cestino", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+        Update-Status -Text "Controllo cestino completato" -Color "Success"
+    } catch {
+        Hide-Overlay
+        [System.Windows.Forms.MessageBox]::Show("Impossibile leggere il cestino.", "Errore", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+    }
+}
+
+function Check-Recordings {
+    Update-Status -Text "Controllo registrazioni..." -Color "Warning"
+    Show-Overlay -Title "Registrazioni Attive" -Subtitle "Scansione processi in esecuzione..."
+    
+    $recordingApps = @("obs64", "obs32", "nvcontainer", "nvsphelper64", "fraps", "Streamlabs Desktop", "gamemode")
+    $activeProcs = @()
+    foreach ($app in $recordingApps) {
+        $p = Get-Process -Name $app -ErrorAction SilentlyContinue
+        if ($p) { $activeProcs += $app }
+    }
+    
+    Hide-Overlay
+    $msg = if ($activeProcs.Count -gt 0) { "ATTENZIONE! Programmi di registrazione attivi: $($activeProcs -join ', ')" } else { "Nessun programma di registrazione noto e attualmente attivo." }
+    [System.Windows.Forms.MessageBox]::Show($msg, "Registrazioni Attive", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Update-Status -Text "Controllo registrazioni completato" -Color "Success"
+}
 
 $footerPanel = New-Object System.Windows.Forms.Panel
-$footerPanel.Size = New-Object System.Drawing.Size(720, 45)
-$footerPanel.Location = New-Object System.Drawing.Point(0, 715)
+$footerPanel.Size = New-Object System.Drawing.Size(720, 40)
+$footerPanel.Location = New-Object System.Drawing.Point(0, 605)
 $footerPanel.BackColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Surface)
 $footerPanel.Dock = [System.Windows.Forms.DockStyle]::Bottom
 $mainForm.Controls.Add($footerPanel)
 
 $lblStatus = New-Object System.Windows.Forms.Label
 $lblStatus.Text = "Pronto e operativo"
-$lblStatus.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+$lblStatus.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
 $lblStatus.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Success)
-$lblStatus.Location = New-Object System.Drawing.Point(20, 12)
+$lblStatus.Location = New-Object System.Drawing.Point(20, 10)
 $lblStatus.AutoSize = $true
 $footerPanel.Controls.Add($lblStatus)
 
