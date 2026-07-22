@@ -941,7 +941,7 @@ $script:RecordingPrograms = @(
     @{ Name="ShareX";                    Processes=@("ShareX");                             Instructions="Tasto destro sull'icona ShareX nella tray -> Stop screen recording.`nPer chiuderlo: tasto destro sulla tray -> Exit." }
     @{ Name="Icecream Screen Recorder"; Processes=@("Icecream Screen Recorder","IcecreamScreenRecorder"); Instructions="Clicca 'Stop' nel pannello flottante.`nPer chiuderlo: chiudi la finestra principale." }
     @{ Name="Loom";                      Processes=@("Loom");                                Instructions="Clicca 'Stop' sul widget flottante di Loom.`nPer chiuderlo: tasto destro sulla tray -> Quit." }
-    @{ Name="Discord (chiamata)";        Processes=@("Discord");                            Instructions="Discord không registra file localmente, ma puo' condividere schermo in chiamata.`nVerifica manualmente se e' attiva una condivisione schermo/videocamera in una chiamata."; ManualOnly=$true }
+    @{ Name="Discord (chiamata)";        Processes=@("Discord");                            Instructions="Discord non registra file localmente, ma puo' condividere schermo in chiamata.`nVerifica manualmente se e' attiva una condivisione schermo/videocamera in una chiamata."; ManualOnly=$true }
     @{ Name="Zoom";                      Processes=@("Zoom");                                Instructions="Verifica manualmente se e' in corso una registrazione (icona rossa REC nella finestra della riunione)."; ManualOnly=$true }
     @{ Name="Microsoft Teams";           Processes=@("Teams","ms-teams");                   Instructions="Verifica manualmente se e' in corso una registrazione della riunione (icona REC in alto)."; ManualOnly=$true }
 )
@@ -1930,7 +1930,8 @@ function Start-AutoAnalyze {
     
     $found = New-Object System.Collections.Generic.List[string]
     $global:CancelScan = $false
-    Show-Overlay -Title "Ricerca file .log.gz" -Subtitle "Scansione in corso..."
+    Show-Overlay -Title "Analisi Automatica" -Subtitle "Ricerca file .log.gz in corso..."
+    
     try {
         if ($scope.Mode -eq "All") {
             $roots = [System.IO.DriveInfo]::GetDrives() |
@@ -1946,11 +1947,13 @@ function Start-AutoAnalyze {
     } finally {
         Hide-Overlay
     }
+    
     if ($found.Count -eq 0) {
-        [System.Windows.Forms.MessageBox]::Show("Nessun file .log.gz valido trovato.", "Ricerca completata", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+        [System.Windows.Forms.MessageBox]::Show("Nessun file .log.gz valido trovato.", "Analisi completata", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
         Update-Status -Text "Nessun file trovato" -Color "Default" -Force
         return
     }
+    
     Update-Status -Text "Analisi $($found.Count) file..." -Color "Warning" -Force
     Show-Overlay -Title "Analisi Automatica" -Subtitle "Estrazione dati in corso..."
     
