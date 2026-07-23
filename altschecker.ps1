@@ -2,8 +2,6 @@
 <#
     CoralMC Alts Checker
     Premium Edition - Ocean Theme (Optimized Core)
-    Version: 1.0.0
-    GitHub Ready - UTF-8 without BOM
 #>
 
 Add-Type -AssemblyName System.Windows.Forms
@@ -20,9 +18,11 @@ Add-Type -AssemblyName System.Net.Http
 # ========================================================================
 function Clear-WindowsClipboardHistory {
     try {
+        # 1. Pulisce la clipboard attiva
         [System.Windows.Forms.Clipboard]::Clear()
         Set-Clipboard -Value $null -ErrorAction SilentlyContinue
 
+        # 2. Metodo UWP nativo per Windows 10/11 (Pulisce la cronologia Win+V via API)
         try {
             Add-Type -AssemblyName System.Runtime.WindowsRuntime
             $asTask = ([Windows.ApplicationModel.DataTransfer.Clipboard].GetMethod('ClearHistory', [System.Reflection.BindingFlags]'Public,Static'))
@@ -31,6 +31,7 @@ function Clear-WindowsClipboardHistory {
             }
         } catch { }
 
+        # 3. Interrompe e pulisce il servizio di cronologia appunti di Windows (cbdhsvc)
         $clipboardServices = Get-Service -Name "cbdhsvc*" -ErrorAction SilentlyContinue
         foreach ($svc in $clipboardServices) {
             if ($svc.Status -eq 'Running') {
@@ -38,6 +39,7 @@ function Clear-WindowsClipboardHistory {
             }
         }
 
+        # 4. Rimuove i file di cache della cronologia nel profilo utente
         $clipboardHistoryPath = "$env:LOCALAPPDATA\Microsoft\Windows\Clipboard"
         if (Test-Path $clipboardHistoryPath) {
             Get-ChildItem -Path $clipboardHistoryPath -Recurse -Force -ErrorAction SilentlyContinue | 
@@ -45,12 +47,14 @@ function Clear-WindowsClipboardHistory {
                 Remove-Item -Force -ErrorAction SilentlyContinue
         }
 
+        # 5. Riavvia i servizi clipboard di sistema
         foreach ($svc in $clipboardServices) {
             Start-Service -Name $svc.Name -ErrorAction SilentlyContinue
         }
     } catch { }
 }
 
+# Esegue la pulizia immediatamente all'avvio dello script
 Clear-WindowsClipboardHistory
 
 # ========================================================================
@@ -81,6 +85,7 @@ $Theme = @{
 # ========================================================================
 # STILI GRAFICI GLOBALI
 # ========================================================================
+
 $ButtonStyles = @{
     Primary = @{ Color = "#00D4FF"; Hover = "#44DDFF"; Text = "#FFFFFF" }
     Success = @{ Color = "#00E676"; Hover = "#44E88A"; Text = "#FFFFFF" }
@@ -102,6 +107,7 @@ $PanelStyles = @{
 # ========================================================================
 # FUNZIONI DI UTILITA
 # ========================================================================
+
 function Test-IsAdmin {
     $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal($currentUser)
@@ -187,6 +193,7 @@ function Get-ColorWithOpacity {
 # ========================================================================
 # UNIFIED BUTTON
 # ========================================================================
+
 function New-UnifiedButton {
     param(
         [string]$Text,
@@ -335,6 +342,7 @@ function New-UnifiedLabel {
 # ========================================================================
 # STYLED FORM
 # ========================================================================
+
 function New-StyledForm {
     param(
         [string]$Title,
@@ -393,6 +401,7 @@ function New-StyledForm {
 # ========================================================================
 # OVERLAY
 # ========================================================================
+
 $overlayForm = $null
 
 function Show-Overlay {
@@ -479,6 +488,7 @@ function Hide-Overlay {
 # ========================================================================
 # FUNZIONE LOGO
 # ========================================================================
+
 function New-CoralLogoBitmap {
     param([int]$Size = 64)
     $bmp = New-Object System.Drawing.Bitmap($Size, $Size)
@@ -541,6 +551,7 @@ function Get-LogoImage {
 # ========================================================================
 # CARD FACTORY
 # ========================================================================
+
 function New-ActionCard {
     param(
         [int]$Y, [string]$IconChar, [string]$IconColor, [string]$Title, [string]$Desc,
@@ -611,6 +622,7 @@ function New-ActionCard {
 # ========================================================================
 # MAIN FORM
 # ========================================================================
+
 $mainForm = New-Object System.Windows.Forms.Form
 $mainForm.Text = "CoralMC Alts Checker"
 $mainForm.Size = New-Object System.Drawing.Size(720, 800)
@@ -662,6 +674,7 @@ $mainForm.Add_Paint({
 # ========================================================================
 # HEADER
 # ========================================================================
+
 $headerPanel = New-Object System.Windows.Forms.Panel
 $headerPanel.Size = New-Object System.Drawing.Size(720, 100)
 $headerPanel.Location = New-Object System.Drawing.Point(0, 0)
@@ -718,6 +731,7 @@ $headerPanel.Controls.Add($lblTitle)
 # ========================================================================
 # CONTENT PANEL
 # ========================================================================
+
 $contentPanel = New-Object System.Windows.Forms.Panel
 $contentPanel.Size = New-Object System.Drawing.Size(700, 600)
 $contentPanel.Location = New-Object System.Drawing.Point(10, 110)
@@ -728,6 +742,7 @@ $mainForm.Controls.Add($contentPanel)
 # ========================================================================
 # CARDS
 # ========================================================================
+
 $card1 = New-ActionCard -Y 5 -IconChar "📂" -IconColor $Theme.Primary -Title "Cerca file .log.gz" -Desc "Ricerca full-text nei file .log.gz compressi" -ButtonText "Avvia" -ButtonStyle "Primary" -OnClick { Start-LogGzSearch }
 $contentPanel.Controls.Add($card1)
 
@@ -749,6 +764,7 @@ $contentPanel.Controls.Add($card6)
 # ========================================================================
 # FOOTER
 # ========================================================================
+
 $footerPanel = New-Object System.Windows.Forms.Panel
 $footerPanel.Size = New-Object System.Drawing.Size(720, 50)
 $footerPanel.Location = New-Object System.Drawing.Point(0, 745)
@@ -796,6 +812,7 @@ $footerPanel.Controls.Add($lblName)
 # ========================================================================
 # UPDATE STATUS
 # ========================================================================
+
 $script:LastStatusUpdate = [DateTime]::MinValue
 
 function Update-Status {
@@ -820,6 +837,7 @@ function Update-Status {
 # ========================================================================
 # FUNZIONE CESTINO
 # ========================================================================
+
 function Check-RecycleBin {
     Update-Status -Text "Controllo cestino..." -Color "Warning" -Force
     Show-Overlay -Title "Controllo Cestino" -Subtitle "Ricerca ultima modifica..."
@@ -907,6 +925,7 @@ function Check-RecycleBin {
 # ========================================================================
 # TABELLA PROGRAMMI DI REGISTRAZIONE CONOSCIUTI
 # ========================================================================
+
 $script:RecordingPrograms = @(
     @{ Name="NVIDIA ShadowPlay";         Processes=@("nvcontainer","nvsphelper64");         Instructions="ALT+Z poi 'Stop Recording', oppure ALT+F9.`nPer chiuderlo: tasto destro sull'icona NVIDIA nella tray -> Esci." }
     @{ Name="OBS Studio";                Processes=@("obs64","obs32");                      Instructions="Clicca 'Stop Recording' o CTRL+SHIFT+E.`nPer chiuderlo: File -> Esci o X in alto a destra." }
@@ -922,7 +941,7 @@ $script:RecordingPrograms = @(
     @{ Name="ShareX";                    Processes=@("ShareX");                             Instructions="Tasto destro sull'icona ShareX nella tray -> Stop screen recording.`nPer chiuderlo: tasto destro sulla tray -> Exit." }
     @{ Name="Icecream Screen Recorder"; Processes=@("Icecream Screen Recorder","IcecreamScreenRecorder"); Instructions="Clicca 'Stop' nel pannello flottante.`nPer chiuderlo: chiudi la finestra principale." }
     @{ Name="Loom";                      Processes=@("Loom");                                Instructions="Clicca 'Stop' sul widget flottante di Loom.`nPer chiuderlo: tasto destro sulla tray -> Quit." }
-    @{ Name="Discord (chiamata)";        Processes=@("Discord");                            Instructions="Discord non registra file localmente, ma puo' condividere schermo in chiamata.`nVerifica manualmente se e' attiva una condivisione schermo/videocamera in una chiamata."; ManualOnly=$true }
+    @{ Name="Discord (chiamata)";        Processes=@("Discord");                            Instructions="Discord không registra file localmente, ma puo' condividere schermo in chiamata.`nVerifica manualmente se e' attiva una condivisione schermo/videocamera in una chiamata."; ManualOnly=$true }
     @{ Name="Zoom";                      Processes=@("Zoom");                                Instructions="Verifica manualmente se e' in corso una registrazione (icona rossa REC nella finestra della riunione)."; ManualOnly=$true }
     @{ Name="Microsoft Teams";           Processes=@("Teams","ms-teams");                   Instructions="Verifica manualmente se e' in corso una registrazione della riunione (icona REC in alto)."; ManualOnly=$true }
 )
@@ -943,6 +962,7 @@ function Test-RecentRecordingFiles {
 # ========================================================================
 # FUNZIONE REGISTRAZIONI ATTIVE
 # ========================================================================
+
 function Check-Recordings {
     Update-Status -Text "Controllo registrazioni..." -Color "Warning" -Force
     Show-Overlay -Title "Controllo Registrazioni" -Subtitle "Verifica programmi aperti..."
@@ -1133,6 +1153,7 @@ function Show-CloseDetails {
 # ========================================================================
 # FUNZIONE GET USN JOURNAL STATUS
 # ========================================================================
+
 function Get-USNJournalStatus {
     $result = @{
         Status = "NON DISPONIBILE"; Details = ""; IsDeleted = $false
@@ -1208,6 +1229,7 @@ function Get-USNJournalStatus {
 # ========================================================================
 # FUNZIONE 1 - CERCA .LOG.GZ
 # ========================================================================
+
 function Start-LogGzSearch {
     $scope = Select-ScanScope
     if ($null -eq $scope) { return }
@@ -1265,6 +1287,7 @@ function Find-LogGzFiles {
 # ========================================================================
 # FUNZIONE 2 - JOURNAL USN
 # ========================================================================
+
 $global:USNTempFile = $null
 
 function Start-JournalRead {
@@ -1336,6 +1359,7 @@ function Start-JournalRead {
 # ========================================================================
 # ANALISI SISTEMA
 # ========================================================================
+
 function Check-SystemIntegrity {
     Update-Status -Text "Analisi sistema in corso..." -Color "Warning" -Force
     Show-Overlay -Title "Analisi Sistema" -Subtitle "Verifica integrita sistema..."
@@ -1596,6 +1620,7 @@ function Check-SystemIntegrity {
 # ========================================================================
 # SHOW SYSTEM ANALYSIS RESULTS
 # ========================================================================
+
 function Show-SystemAnalysisResults {
     param($Results, [bool]$HasIssues, [bool]$CriticalIssues)
     
@@ -1791,6 +1816,7 @@ function Show-SystemAnalysisResults {
 # ========================================================================
 # FUNZIONI AUSILIARIE PER ANALISI SISTEMA
 # ========================================================================
+
 function Get-ClearName {
     param($Category)
     $clearNames = @{
@@ -1896,6 +1922,7 @@ function Get-ClearDetails {
 # ========================================================================
 # FUNZIONE 3 - AUTO ANALYZE
 # ========================================================================
+
 function Start-AutoAnalyze {
     $scope = Select-ScanScope
     if ($null -eq $scope) { return }
@@ -2105,6 +2132,7 @@ function Start-AutoAnalyze {
 # ========================================================================
 # INSTALLAZIONE WINRAR
 # ========================================================================
+
 function Install-WinRAR {
     try {
         Update-Status -Text "Download WinRAR..." -Color "Warning" -Force
@@ -2138,6 +2166,7 @@ function Install-WinRAR {
 # ========================================================================
 # SHOW ANALYSIS RESULTS
 # ========================================================================
+
 function Show-AnalysisResults {
     param([System.Collections.Generic.List[hashtable]]$Results)
     
@@ -2384,6 +2413,7 @@ function Show-AnalysisResults {
 # ========================================================================
 # SCOPE SELECTION
 # ========================================================================
+
 function Select-ScanScope {
     $scopeForm = New-StyledForm -Title "Ambito della ricerca" -Width 480 -Height 320
     
@@ -2489,6 +2519,7 @@ function Select-ScanScope {
 # ========================================================================
 # SEARCH WINDOW
 # ========================================================================
+
 function Show-SearchWindow {
     param([System.Collections.Generic.List[string]]$Files)
     
@@ -2696,6 +2727,7 @@ function Show-SearchWindow {
 # ========================================================================
 # AVVIO E PULIZIA FINALE
 # ========================================================================
+
 $mainForm.Add_FormClosing({
     $global:CancelScan = $true
     $global:CancelSearch = $true
