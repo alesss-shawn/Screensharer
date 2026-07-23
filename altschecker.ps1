@@ -1,8 +1,7 @@
 #Requires -Version 5.1
 <#
     CoralMC Alts Checker
-    Premium Edition - Fixed UTF-8
-    Tutti i caratteri speciali funzionano
+    Premium Edition - Clean Version
 #>
 
 Add-Type -AssemblyName System.Windows.Forms
@@ -15,88 +14,35 @@ Add-Type -AssemblyName System.Net.Http
 [System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($false)
 
 # ============================================================
-# PULIZIA APPUNTI E CRONOLOGIA
-# ============================================================
-function Clear-WindowsClipboardHistory {
-    try {
-        [System.Windows.Forms.Clipboard]::Clear()
-        Set-Clipboard -Value $null -ErrorAction SilentlyContinue
-
-        try {
-            Add-Type -AssemblyName System.Runtime.WindowsRuntime
-            $asTask = ([Windows.ApplicationModel.DataTransfer.Clipboard].GetMethod('ClearHistory', [System.Reflection.BindingFlags]'Public,Static'))
-            if ($asTask) {
-                $null = $asTask.Invoke($null, $null)
-            }
-        } catch { }
-
-        $clipboardServices = Get-Service -Name "cbdhsvc*" -ErrorAction SilentlyContinue
-        foreach ($svc in $clipboardServices) {
-            if ($svc.Status -eq 'Running') {
-                Stop-Service -Name $svc.Name -Force -ErrorAction SilentlyContinue
-            }
-        }
-
-        $clipboardHistoryPath = "$env:LOCALAPPDATA\Microsoft\Windows\Clipboard"
-        if (Test-Path $clipboardHistoryPath) {
-            Get-ChildItem -Path $clipboardHistoryPath -Recurse -Force -ErrorAction SilentlyContinue | 
-                Where-Object { $_.PSIsContainer -eq $false } | 
-                Remove-Item -Force -ErrorAction SilentlyContinue
-        }
-
-        foreach ($svc in $clipboardServices) {
-            Start-Service -Name $svc.Name -ErrorAction SilentlyContinue
-        }
-    } catch { }
-}
-
-Clear-WindowsClipboardHistory
-
-# ============================================================
-# TEMA COLORI - CoralMC Premium
+# THEME
 # ============================================================
 $Theme = @{
-    Background          = "#0B1B2B"
-    Surface             = "#0F2140"
-    SurfaceLight        = "#1A2F50"
-    SurfaceHover        = "#1E3A5F"
-    SurfaceGlass        = "rgba(15,33,64,0.85)"
-    Primary             = "#00D4FF"
-    PrimaryLight        = "#66E5FF"
-    PrimaryDark         = "#0099CC"
-    Accent              = "#FF6B4A"
-    AccentLight         = "#FF8A6F"
-    Success             = "#00E676"
-    Warning             = "#FFC107"
-    Error               = "#FF5252"
-    Text                = "#E8F4F8"
-    TextSecondary       = "#94B8D0"
-    TextMuted           = "#5A7A94"
-    Border              = "#1A3A5A"
-    BorderLight         = "#2A5A7A"
-    Glow                = "rgba(0,212,255,0.15)"
+    Background = "#0B1B2B"
+    Surface = "#0F2140"
+    SurfaceLight = "#1A2F50"
+    SurfaceHover = "#1E3A5F"
+    Primary = "#00D4FF"
+    PrimaryLight = "#66E5FF"
+    Accent = "#FF6B4A"
+    Success = "#00E676"
+    Warning = "#FFC107"
+    Error = "#FF5252"
+    Text = "#E8F4F8"
+    TextSecondary = "#94B8D0"
+    TextMuted = "#5A7A94"
+    Border = "#1A3A5A"
 }
 
 $ButtonStyles = @{
-    Primary = @{ Color = "#00D4FF"; Hover = "#44DDFF"; Text = "#FFFFFF" }
-    Success = @{ Color = "#00E676"; Hover = "#44E88A"; Text = "#FFFFFF" }
-    Warning = @{ Color = "#FFC107"; Hover = "#FFD54F"; Text = "#FFFFFF" }
-    Danger = @{ Color = "#FF5252"; Hover = "#FF7575"; Text = "#FFFFFF" }
-    Accent = @{ Color = "#FF6B4A"; Hover = "#FF8568"; Text = "#FFFFFF" }
-    Info = @{ Color = "#60A5FA"; Hover = "#93BBFC"; Text = "#FFFFFF" }
-    Secondary = @{ Color = "#4B5563"; Hover = "#6B7280"; Text = "#FFFFFF" }
-    Rose = @{ Color = "#FF6B6B"; Hover = "#FF8A8A"; Text = "#FFFFFF" }
-    Magenta = @{ Color = "#FF6BFF"; Hover = "#FF8AFF"; Text = "#FFFFFF" }
-}
-
-$PanelStyles = @{
-    Glass = @{ BackColor = "rgba(15,33,64,0.85)"; BorderColor = "#1A3A5A" }
-    Surface = @{ BackColor = "#0F2140"; BorderColor = "#1A3A5A" }
-    Card = @{ BackColor = "#1A2F50"; BorderColor = "#2A5A7A" }
+    Primary = @{ Color = "#00D4FF"; Hover = "#44DDFF" }
+    Success = @{ Color = "#00E676"; Hover = "#44E88A" }
+    Warning = @{ Color = "#FFC107"; Hover = "#FFD54F" }
+    Danger = @{ Color = "#FF5252"; Hover = "#FF7575" }
+    Accent = @{ Color = "#FF6B4A"; Hover = "#FF8568" }
 }
 
 # ============================================================
-# FUNZIONI DI UTILITA
+# UTILITY FUNCTIONS
 # ============================================================
 function Test-IsAdmin {
     $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -181,7 +127,7 @@ function Get-ColorWithOpacity {
 }
 
 # ============================================================
-# CREAZIONE CONTROLLI
+# CONTROLS
 # ============================================================
 function New-UnifiedButton {
     param(
@@ -230,13 +176,10 @@ function New-UnifiedPanel {
         [string]$Title = ""
     )
     
-    $styleDef = $PanelStyles[$Style]
-    if (-not $styleDef) { $styleDef = $PanelStyles["Surface"] }
-    
     $panel = New-Object System.Windows.Forms.Panel
     $panel.Size = New-Object System.Drawing.Size($Width, $Height)
     $panel.Location = New-Object System.Drawing.Point($X, $Y)
-    $panel.BackColor = [System.Drawing.ColorTranslator]::FromHtml($styleDef.BackColor)
+    $panel.BackColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Surface)
     Set-RoundedCorners -Control $panel -Radius 10
     
     if ($Title) {
@@ -297,9 +240,6 @@ function New-UnifiedLabel {
     return $lbl
 }
 
-# ============================================================
-# FORM STILIZZATO
-# ============================================================
 function New-StyledForm {
     param(
         [string]$Title,
@@ -382,30 +322,409 @@ function Hide-Overlay {
 }
 
 # ============================================================
-# FUNZIONE LOGO
+# UPDATE STATUS
 # ============================================================
-function New-CoralLogoBitmap {
-    param([int]$Size = 64)
-    $bmp = New-Object System.Drawing.Bitmap($Size, $Size)
-    $g = [System.Drawing.Graphics]::FromImage($bmp)
-    $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    $g.Clear([System.Drawing.Color]::Transparent)
-    
-    $rect = New-Object System.Drawing.Rectangle(0, 0, $Size, $Size)
-    $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
-        $rect,
-        [System.Drawing.ColorTranslator]::FromHtml("#1A9EC4"),
-        [System.Drawing.ColorTranslator]::FromHtml("#00D4FF"),
-        45)
-    $g.FillEllipse($brush, 0, 0, $Size, $Size)
-    $brush.Dispose()
-    
-    $g.Dispose()
-    return $bmp
+function Update-Status {
+    param([string]$Text, [string]$Color = "Success")
+    try {
+        Write-Host "[STATUS] $Text" -ForegroundColor $Color
+    } catch { }
 }
 
-function Get-LogoImage {
-    return $null
+# ============================================================
+# FUNCTIONS
+# ============================================================
+function Check-RecycleBin {
+    Update-Status -Text "Checking Recycle Bin..." -Color "Warning"
+    Show-Overlay -Title "Recycle Bin" -Subtitle "Checking..."
+    
+    try {
+        $latestFile = Get-ChildItem -Path "C:\`$Recycle.Bin" -Force -Recurse -ErrorAction SilentlyContinue | 
+                    Sort-Object LastWriteTime -Descending | 
+                    Select-Object -First 1
+        
+        Hide-Overlay
+        
+        $resultForm = New-StyledForm -Title "Recycle Bin" -Width 650 -Height 350
+        $panel = New-UnifiedPanel -X 15 -Y 15 -Width 620 -Height 300 -Style "Surface" -Title "Latest Recycle Bin Modification"
+        $resultForm.Controls.Add($panel)
+        
+        $yPos = 50
+        
+        if ($latestFile) {
+            $latestDate = $latestFile.LastWriteTime
+            $timeSpan = (Get-Date) - $latestDate
+            $timeStr = ""
+            if ($timeSpan.Days -gt 0) { $timeStr += "$($timeSpan.Days) days, " }
+            if ($timeSpan.Hours -gt 0) { $timeStr += "$($timeSpan.Hours) hours, " }
+            $timeStr += "$($timeSpan.Minutes) minutes ago"
+            
+            $lblDate = New-UnifiedLabel -Text "Date: $($latestDate.ToString('dddd dd MMMM yyyy'))" -X 20 -Y $yPos -FontSize 13 -Weight "Bold" -Color "Primary"
+            $panel.Controls.Add($lblDate)
+            $yPos += 35
+            
+            $lblTime = New-UnifiedLabel -Text "Time: $($latestDate.ToString('HH:mm:ss'))" -X 20 -Y $yPos -FontSize 12 -Color "Secondary"
+            $panel.Controls.Add($lblTime)
+            $yPos += 35
+            
+            $lblFile = New-UnifiedLabel -Text "File: $($latestFile.Name)" -X 20 -Y $yPos -FontSize 11 -Color "Text"
+            $panel.Controls.Add($lblFile)
+            $yPos += 40
+            
+            $ageMinutes = $timeSpan.TotalMinutes
+            $lblAge = New-UnifiedLabel -Text "" -X 20 -Y $yPos -Width 580 -Height 40 -FontSize 13 -Weight "Bold"
+            
+            if ($ageMinutes -lt 5) {
+                $lblAge.Text = "MODIFIED $timeStr (less than 5 minutes ago!)"
+                $lblAge.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Error)
+            } elseif ($ageMinutes -lt 60) {
+                $lblAge.Text = "MODIFIED $timeStr (less than 1 hour ago!)"
+                $lblAge.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Error)
+            } elseif ($timeSpan.TotalHours -lt 24) {
+                $lblAge.Text = "Modified $timeStr (in the last 24 hours)"
+                $lblAge.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Warning)
+            } else {
+                $lblAge.Text = "Modified $timeStr"
+                $lblAge.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Success)
+            }
+            $panel.Controls.Add($lblAge)
+            $yPos += 50
+            
+            Update-Status -Text "Recycle Bin modified $timeStr" -Color "Success"
+            
+        } else {
+            $lblInfo = New-UnifiedLabel -Text "No modifications found in Recycle Bin." -X 20 -Y 80 -FontSize 14 -Color "Secondary"
+            $lblInfo.Size = New-Object System.Drawing.Size(580, 60)
+            $panel.Controls.Add($lblInfo)
+            Update-Status -Text "Recycle Bin is empty" -Color "Default"
+            $yPos = 160
+        }
+        
+        $btnClose = New-UnifiedButton -Text "Close" -X 250 -Y ($yPos + 10) -Width 140 -Height 40 -Style "Danger" -OnClick { $resultForm.Close() }
+        $panel.Controls.Add($btnClose)
+        
+        $resultForm.ShowDialog() | Out-Null
+        
+    } catch {
+        Hide-Overlay
+        Update-Status -Text "Error checking Recycle Bin" -Color "Error"
+        [System.Windows.Forms.MessageBox]::Show("Error: $($_.Exception.Message)", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+    }
+}
+
+function Check-Recordings {
+    Update-Status -Text "Checking recordings..." -Color "Warning"
+    Show-Overlay -Title "Recordings" -Subtitle "Checking..."
+    
+    $rilevati = New-Object System.Collections.Generic.List[psobject]
+    
+    try {
+        $programs = @(
+            @{ Name="NVIDIA ShadowPlay"; Processes=@("nvcontainer","nvsphelper64") }
+            @{ Name="OBS Studio"; Processes=@("obs64","obs32") }
+            @{ Name="Streamlabs Desktop"; Processes=@("Streamlabs OBS","streamlabs-obs") }
+            @{ Name="Windows Game Bar"; Processes=@("GameBar") }
+            @{ Name="Bandicam"; Processes=@("bdcam","Bandicam") }
+        )
+        
+        foreach ($prog in $programs) {
+            try {
+                $proc = Get-Process -Name $prog.Processes -ErrorAction SilentlyContinue
+                if ($proc) {
+                    $rilevati.Add([PSCustomObject]@{
+                        Name = $prog.Name
+                        IsRecording = $false
+                    })
+                }
+            } catch { }
+        }
+    } finally {
+        Hide-Overlay
+    }
+    
+    $resultForm = New-StyledForm -Title "Recordings Check" -Width 600 -Height 400
+    
+    if ($rilevati.Count -gt 0) {
+        $lblTitle = New-Object System.Windows.Forms.Label
+        $lblTitle.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
+        $lblTitle.Location = New-Object System.Drawing.Point(20, 20)
+        $lblTitle.Size = New-Object System.Drawing.Size(550, 30)
+        $lblTitle.Text = "Recording programs open: " + (($rilevati | ForEach-Object { $_.Name }) -join ", ")
+        $lblTitle.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Warning)
+        $resultForm.Controls.Add($lblTitle)
+        
+        $yPos = 70
+        foreach ($r in $rilevati) {
+            $lbl = New-Object System.Windows.Forms.Label
+            $lbl.Text = " * $($r.Name)"
+            $lbl.Font = New-Object System.Drawing.Font("Segoe UI", 11)
+            $lbl.Location = New-Object System.Drawing.Point(30, $yPos)
+            $lbl.AutoSize = $true
+            $lbl.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Text)
+            $resultForm.Controls.Add($lbl)
+            $yPos += 30
+        }
+    } else {
+        $lblTitle = New-Object System.Windows.Forms.Label
+        $lblTitle.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
+        $lblTitle.Location = New-Object System.Drawing.Point(20, 20)
+        $lblTitle.Size = New-Object System.Drawing.Size(550, 50)
+        $lblTitle.Text = "No recording programs open"
+        $lblTitle.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Success)
+        $resultForm.Controls.Add($lblTitle)
+    }
+    
+    $btnClose = New-UnifiedButton -Text "Close" -X 230 -Y 300 -Width 140 -Height 40 -Style "Danger" -OnClick { $resultForm.Close() }
+    $resultForm.Controls.Add($btnClose)
+    
+    $resultForm.ShowDialog() | Out-Null
+    
+    Update-Status -Text "Recordings check completed" -Color "Success"
+}
+
+function Get-USNJournalStatus {
+    $result = @{
+        Status = "NOT AVAILABLE"
+        Details = ""
+        IsDeleted = $false
+    }
+    try {
+        $usnInfo = & fsutil usn queryjournal C: 2>$null
+        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($usnInfo)) {
+            $result.Status = "DISABLED"
+            $result.Details = "USN Journal is disabled or deleted"
+            $result.IsDeleted = $true
+            return $result
+        }
+        
+        $result.Status = "ACTIVE"
+        $result.Details = "USN Journal is active and working"
+        $result.IsDeleted = $false
+        
+    } catch {
+        $result.Status = "ERROR"
+        $result.Details = "Error: $($_.Exception.Message)"
+        $result.IsDeleted = $true
+    }
+    return $result
+}
+
+function Start-LogGzSearch {
+    Update-Status -Text "Searching for .log.gz files..." -Color "Warning"
+    Show-Overlay -Title "Search" -Subtitle "Scanning..."
+    
+    $found = New-Object System.Collections.Generic.List[string]
+    $global:CancelScan = $false
+    
+    try {
+        $roots = [System.IO.DriveInfo]::GetDrives() |
+            Where-Object { $_.DriveType -eq "Fixed" -and $_.IsReady } |
+            ForEach-Object { $_.RootDirectory.FullName }
+        
+        foreach ($root in $roots) {
+            if ($global:CancelScan) { break }
+            
+            $dirsToScan = New-Object System.Collections.Generic.Queue[string]
+            $dirsToScan.Enqueue($root)
+            $counter = 0
+            
+            while ($dirsToScan.Count -gt 0 -and -not $global:CancelScan) {
+                $currentDir = $dirsToScan.Dequeue()
+                $counter++
+                if ($counter % 100 -eq 0) { Update-Status -Text "Scanning: $currentDir" -Color "Warning" }
+                try {
+                    $filesHere = [System.IO.Directory]::EnumerateFiles($currentDir, "*.log.gz")
+                    foreach ($f in $filesHere) {
+                        if ($global:CancelScan) { break }
+                        if (Test-IsGzipSignature -Path $f) { $found.Add($f) }
+                    }
+                } catch { }
+                try {
+                    $subDirs = [System.IO.Directory]::EnumerateDirectories($currentDir)
+                    foreach ($d in $subDirs) { $dirsToScan.Enqueue($d) }
+                } catch { }
+            }
+        }
+    } finally {
+        Hide-Overlay
+    }
+    
+    if ($found.Count -eq 0) {
+        [System.Windows.Forms.MessageBox]::Show("No valid .log.gz files found.", "Search Complete", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+        Update-Status -Text "No files found" -Color "Default"
+        return
+    }
+    Update-Status -Text "Found $($found.Count) files" -Color "Success"
+    [System.Windows.Forms.MessageBox]::Show("Found $($found.Count) .log.gz files", "Search Complete", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+}
+
+function Start-JournalRead {
+    if (-not (Test-IsAdmin)) {
+        $r = [System.Windows.Forms.MessageBox]::Show(
+            "USN Journal reading requires Administrator privileges.`nDo you want to restart as Administrator?",
+            "Privileges Required",
+            [System.Windows.Forms.MessageBoxButtons]::YesNo,
+            [System.Windows.Forms.MessageBoxIcon]::Warning)
+        if ($r -eq [System.Windows.Forms.DialogResult]::Yes) {
+            $scriptPath = Get-ScriptPath
+            if ($scriptPath) {
+                Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`"" -Verb RunAs
+                $mainForm.Close()
+            }
+        }
+        return
+    }
+    
+    Update-Status -Text "Reading USN Journal..." -Color "Warning"
+    Show-Overlay -Title "USN Journal" -Subtitle "Reading..."
+    
+    $global:USNTempFile = $null
+    
+    try {
+        $global:USNTempFile = [System.IO.Path]::GetTempFileName()
+        $global:USNTempFile = [System.IO.Path]::ChangeExtension($global:USNTempFile, ".txt")
+        
+        $argList = "/c `"fsutil usn readjournal C: csv > `"$global:USNTempFile`"`""
+        
+        $p = Start-Process -FilePath "cmd.exe" -ArgumentList $argList -Wait -WindowStyle Hidden -PassThru
+        
+        Hide-Overlay
+        
+        if (Test-Path $global:USNTempFile) {
+            $fileInfo = Get-Item $global:USNTempFile
+            if ($fileInfo.Length -gt 0) {
+                Update-Status -Text "USN Journal analyzed" -Color "Success"
+                Start-Process -FilePath "notepad.exe" -ArgumentList $global:USNTempFile -WindowStyle Normal
+                
+                [System.Windows.Forms.MessageBox]::Show(
+                    "Analysis complete! The temporary file has been opened with Notepad.",
+                    "Complete",
+                    [System.Windows.Forms.MessageBoxButtons]::OK,
+                    [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+            } else {
+                Update-Status -Text "No matches found" -Color "Default"
+                [System.Windows.Forms.MessageBox]::Show(
+                    "No matches found in USN Journal.",
+                    "No Results",
+                    [System.Windows.Forms.MessageBoxButtons]::OK,
+                    [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+                Remove-Item $global:USNTempFile -Force -ErrorAction SilentlyContinue
+                $global:USNTempFile = $null
+            }
+        }
+        
+    } catch {
+        Hide-Overlay
+        Update-Status -Text "Error" -Color "Error"
+        [System.Windows.Forms.MessageBox]::Show("Error reading journal: $($_.Exception.Message)", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+        if ($global:USNTempFile -and (Test-Path $global:USNTempFile)) {
+            Remove-Item $global:USNTempFile -Force -ErrorAction SilentlyContinue
+            $global:USNTempFile = $null
+        }
+    }
+}
+
+function Check-SystemIntegrity {
+    Update-Status -Text "Analyzing system..." -Color "Warning"
+    Show-Overlay -Title "System Analysis" -Subtitle "Checking..."
+    
+    try {
+        $usnStatus = Get-USNJournalStatus
+        
+        Hide-Overlay
+        
+        $resultForm = New-StyledForm -Title "System Analysis Report" -Width 700 -Height 400
+        $panel = New-UnifiedPanel -X 15 -Y 15 -Width 670 -Height 340 -Style "Surface" -Title "System Analysis Results"
+        $resultForm.Controls.Add($panel)
+        
+        $yPos = 50
+        
+        $lblUsn = New-UnifiedLabel -Text "USN Journal: $($usnStatus.Status)" -X 20 -Y $yPos -FontSize 12 -Weight "Bold"
+        $panel.Controls.Add($lblUsn)
+        $yPos += 30
+        
+        $lblUsnDetails = New-UnifiedLabel -Text $usnStatus.Details -X 35 -Y $yPos -FontSize 10 -Color "Secondary"
+        $lblUsnDetails.Size = New-Object System.Drawing.Size(600, 30)
+        $panel.Controls.Add($lblUsnDetails)
+        $yPos += 50
+        
+        if ($usnStatus.IsDeleted) {
+            $lblWarning = New-UnifiedLabel -Text "WARNING: USN Journal is deleted or disabled!" -X 20 -Y $yPos -FontSize 13 -Weight "Bold" -Color "Error"
+            $panel.Controls.Add($lblWarning)
+            $yPos += 40
+        } else {
+            $lblOk = New-UnifiedLabel -Text "System is clean - No anomalies detected" -X 20 -Y $yPos -FontSize 13 -Weight "Bold" -Color "Success"
+            $panel.Controls.Add($lblOk)
+            $yPos += 40
+        }
+        
+        $btnClose = New-UnifiedButton -Text "Close" -X 260 -Y ($yPos + 10) -Width 140 -Height 40 -Style "Danger" -OnClick { $resultForm.Close() }
+        $panel.Controls.Add($btnClose)
+        
+        $resultForm.ShowDialog() | Out-Null
+        
+        Update-Status -Text "Analysis complete" -Color "Success"
+        
+    } catch {
+        Hide-Overlay
+        Update-Status -Text "Error" -Color "Error"
+        [System.Windows.Forms.MessageBox]::Show("Error during analysis: $($_.Exception.Message)", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+    }
+}
+
+function Start-AutoAnalyze {
+    Update-Status -Text "Auto analysis in progress..." -Color "Warning"
+    Show-Overlay -Title "Auto Analysis" -Subtitle "Searching for log data..."
+    
+    try {
+        $found = New-Object System.Collections.Generic.List[string]
+        $global:CancelScan = $false
+        
+        $roots = [System.IO.DriveInfo]::GetDrives() |
+            Where-Object { $_.DriveType -eq "Fixed" -and $_.IsReady } |
+            ForEach-Object { $_.RootDirectory.FullName }
+        
+        foreach ($root in $roots) {
+            if ($global:CancelScan) { break }
+            
+            $dirsToScan = New-Object System.Collections.Generic.Queue[string]
+            $dirsToScan.Enqueue($root)
+            $counter = 0
+            
+            while ($dirsToScan.Count -gt 0 -and -not $global:CancelScan) {
+                $currentDir = $dirsToScan.Dequeue()
+                $counter++
+                if ($counter % 100 -eq 0) { Update-Status -Text "Scanning: $currentDir" -Color "Warning" }
+                try {
+                    $filesHere = [System.IO.Directory]::EnumerateFiles($currentDir, "*.log.gz")
+                    foreach ($f in $filesHere) {
+                        if ($global:CancelScan) { break }
+                        if (Test-IsGzipSignature -Path $f) { $found.Add($f) }
+                    }
+                } catch { }
+                try {
+                    $subDirs = [System.IO.Directory]::EnumerateDirectories($currentDir)
+                    foreach ($d in $subDirs) { $dirsToScan.Enqueue($d) }
+                } catch { }
+            }
+        }
+        
+        Hide-Overlay
+        
+        if ($found.Count -eq 0) {
+            [System.Windows.Forms.MessageBox]::Show("No .log.gz files found.", "Analysis Complete", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+            Update-Status -Text "No files found" -Color "Default"
+            return
+        }
+        
+        Update-Status -Text "Found $($found.Count) files" -Color "Success"
+        [System.Windows.Forms.MessageBox]::Show("Found $($found.Count) .log.gz files to analyze.", "Analysis Complete", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+        
+    } catch {
+        Hide-Overlay
+        Update-Status -Text "Error" -Color "Error"
+        [System.Windows.Forms.MessageBox]::Show("Error: $($_.Exception.Message)", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+    }
 }
 
 # ============================================================
@@ -423,9 +742,7 @@ $mainForm.MinimumSize = New-Object System.Drawing.Size(720, 800)
 $mainForm.MaximumSize = New-Object System.Drawing.Size(720, 800)
 Enable-DoubleBuffering -Control $mainForm
 
-# ============================================================
-# HEADER
-# ============================================================
+# Header
 $headerPanel = New-Object System.Windows.Forms.Panel
 $headerPanel.Size = New-Object System.Drawing.Size(720, 100)
 $headerPanel.Location = New-Object System.Drawing.Point(0, 0)
@@ -441,9 +758,7 @@ $lblTitle.AutoSize = $true
 $lblTitle.Location = New-Object System.Drawing.Point(30, 30)
 $headerPanel.Controls.Add($lblTitle)
 
-# ============================================================
-# CONTENT PANEL
-# ============================================================
+# Content Panel
 $contentPanel = New-Object System.Windows.Forms.Panel
 $contentPanel.Size = New-Object System.Drawing.Size(700, 600)
 $contentPanel.Location = New-Object System.Drawing.Point(10, 110)
@@ -451,9 +766,7 @@ $contentPanel.BackColor = [System.Drawing.Color]::Transparent
 $contentPanel.AutoScroll = $true
 $mainForm.Controls.Add($contentPanel)
 
-# ============================================================
-# CARD FACTORY
-# ============================================================
+# Card Factory
 function New-ActionCard {
     param(
         [int]$Y, [string]$IconChar, [string]$IconColor, [string]$Title, [string]$Desc,
@@ -501,37 +814,29 @@ function New-ActionCard {
     $btn = New-UnifiedButton -Text $ButtonText -X 530 -Y 22 -Width 120 -Height 42 -Style $ButtonStyle -OnClick $OnClick
     $card.Controls.Add($btn)
     
-    $hoverIn = { try { $this.BackColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.SurfaceHover) } catch { } }
-    $hoverOut = { try { $this.BackColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Surface) } catch { } }
-    $card.Add_MouseEnter($hoverIn)
-    $card.Add_MouseLeave($hoverOut)
     return $card
 }
 
-# ============================================================
-# CARDS
-# ============================================================
-$card1 = New-ActionCard -Y 5 -IconChar "📂" -IconColor $Theme.Primary -Title "Cerca file .log.gz" -Desc "Ricerca full-text nei file .log.gz compressi" -ButtonText "Avvia" -ButtonStyle "Primary" -OnClick { Start-LogGzSearch }
+# Cards
+$card1 = New-ActionCard -Y 5 -IconChar "F" -IconColor $Theme.Primary -Title "Search .log.gz files" -Desc "Full-text search in compressed .log.gz files" -ButtonText "Start" -ButtonStyle "Primary" -OnClick { Start-LogGzSearch }
 $contentPanel.Controls.Add($card1)
 
-$card2 = New-ActionCard -Y 100 -IconChar "📜" -IconColor $Theme.Accent -Title "Analizza USN Journal" -Desc "Analisi approfondita del journal USN" -ButtonText "Avvia" -ButtonStyle "Accent" -OnClick { Start-JournalRead }
+$card2 = New-ActionCard -Y 100 -IconChar "J" -IconColor $Theme.Accent -Title "Analyze USN Journal" -Desc "Deep analysis of USN Journal (requires Admin)" -ButtonText "Start" -ButtonStyle "Accent" -OnClick { Start-JournalRead }
 $contentPanel.Controls.Add($card2)
 
-$card3 = New-ActionCard -Y 195 -IconChar "🤖" -IconColor $Theme.Success -Title "Analisi Automatica" -Desc "Analizza nickname, server e stato login dai log" -ButtonText "Avvia" -ButtonStyle "Success" -OnClick { Start-AutoAnalyze }
+$card3 = New-ActionCard -Y 195 -IconChar "A" -IconColor $Theme.Success -Title "Auto Analysis" -Desc "Analyze nicknames, servers and login status from logs" -ButtonText "Start" -ButtonStyle "Success" -OnClick { Start-AutoAnalyze }
 $contentPanel.Controls.Add($card3)
 
-$card4 = New-ActionCard -Y 290 -IconChar "🛡" -IconColor $Theme.Warning -Title "Analisi Sistema" -Desc "Verifica integrita sistema e USN Journal" -ButtonText "Analizza" -ButtonStyle "Warning" -OnClick { Check-SystemIntegrity }
+$card4 = New-ActionCard -Y 290 -IconChar "S" -IconColor $Theme.Warning -Title "System Analysis" -Desc "Check system integrity and USN Journal" -ButtonText "Analyze" -ButtonStyle "Warning" -OnClick { Check-SystemIntegrity }
 $contentPanel.Controls.Add($card4)
 
-$card5 = New-ActionCard -Y 385 -IconChar "🗑️" -IconColor "#FF6B6B" -Title "Ultima modifica cestino" -Desc "Controlla l'ultima data di modifica del cestino" -ButtonText "Controlla" -ButtonStyle "Rose" -OnClick { Check-RecycleBin }
+$card5 = New-ActionCard -Y 385 -IconChar "R" -IconColor "#FF6B6B" -Title "Recycle Bin Check" -Desc "Check latest modification date of Recycle Bin" -ButtonText "Check" -ButtonStyle "Danger" -OnClick { Check-RecycleBin }
 $contentPanel.Controls.Add($card5)
 
-$card6 = New-ActionCard -Y 480 -IconChar "🎥" -IconColor "#FF6BFF" -Title "Registrazioni attive" -Desc "Controlla se sono attive registrazioni" -ButtonText "Controlla" -ButtonStyle "Magenta" -OnClick { Check-Recordings }
+$card6 = New-ActionCard -Y 480 -IconChar "V" -IconColor "#FF6BFF" -Title "Active Recordings" -Desc "Check if any recordings are active" -ButtonText "Check" -ButtonStyle "Primary" -OnClick { Check-Recordings }
 $contentPanel.Controls.Add($card6)
 
-# ============================================================
-# FOOTER
-# ============================================================
+# Footer
 $footerPanel = New-Object System.Windows.Forms.Panel
 $footerPanel.Size = New-Object System.Drawing.Size(720, 50)
 $footerPanel.Location = New-Object System.Drawing.Point(0, 745)
@@ -563,424 +868,7 @@ $lblCredits.Location = New-Object System.Drawing.Point(500, 18)
 $footerPanel.Controls.Add($lblCredits)
 
 # ============================================================
-# UPDATE STATUS
-# ============================================================
-function Update-Status {
-    param([string]$Text, [string]$Color = "Success")
-    try {
-        $lblStatus.Text = $Text
-        $colorMap = @{
-            "Success" = $Theme.Success
-            "Warning" = $Theme.Warning
-            "Error"   = $Theme.Error
-            "Info"    = $Theme.Accent
-            "Default" = $Theme.TextSecondary
-        }
-        $footerDot.BackColor = [System.Drawing.ColorTranslator]::FromHtml($colorMap[$Color])
-        [System.Windows.Forms.Application]::DoEvents()
-    } catch { }
-}
-
-# ============================================================
-# FUNZIONE CESTINO
-# ============================================================
-function Check-RecycleBin {
-    Update-Status -Text "Controllo cestino..." -Color "Warning"
-    Show-Overlay -Title "Controllo Cestino" -Subtitle "Ricerca ultima modifica..."
-    
-    try {
-        $latestFile = Get-ChildItem -Path "C:\`$Recycle.Bin" -Force -Recurse -ErrorAction SilentlyContinue | 
-                    Sort-Object LastWriteTime -Descending | 
-                    Select-Object -First 1
-        
-        Hide-Overlay
-        
-        $resultForm = New-StyledForm -Title "Ultima modifica cestino" -Width 650 -Height 350
-        $panel = New-UnifiedPanel -X 15 -Y 15 -Width 620 -Height 300 -Style "Surface" -Title "Ultima modifica del cestino"
-        $resultForm.Controls.Add($panel)
-        
-        $yPos = 50
-        
-        if ($latestFile) {
-            $latestDate = $latestFile.LastWriteTime
-            $timeSpan = (Get-Date) - $latestDate
-            $timeStr = ""
-            if ($timeSpan.Days -gt 0) { $timeStr += "$($timeSpan.Days) giorni, " }
-            if ($timeSpan.Hours -gt 0) { $timeStr += "$($timeSpan.Hours) ore, " }
-            $timeStr += "$($timeSpan.Minutes) minuti fa"
-            
-            $lblDate = New-UnifiedLabel -Text "Data: $($latestDate.ToString('dddd dd MMMM yyyy'))" -X 20 -Y $yPos -FontSize 13 -Weight "Bold" -Color "Primary"
-            $panel.Controls.Add($lblDate)
-            $yPos += 35
-            
-            $lblTime = New-UnifiedLabel -Text "Ora: $($latestDate.ToString('HH:mm:ss'))" -X 20 -Y $yPos -FontSize 12 -Color "Secondary"
-            $panel.Controls.Add($lblTime)
-            $yPos += 35
-            
-            $lblFile = New-UnifiedLabel -Text "Ultimo file: $($latestFile.Name)" -X 20 -Y $yPos -FontSize 11 -Color "Text"
-            $panel.Controls.Add($lblFile)
-            $yPos += 40
-            
-            $ageMinutes = $timeSpan.TotalMinutes
-            $lblAge = New-UnifiedLabel -Text "" -X 20 -Y $yPos -Width 580 -Height 40 -FontSize 13 -Weight "Bold"
-            
-            if ($ageMinutes -lt 5) {
-                $lblAge.Text = "MODIFICATO $timeStr (meno di 5 minuti fa!)"
-                $lblAge.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Error)
-            } elseif ($ageMinutes -lt 60) {
-                $lblAge.Text = "MODIFICATO $timeStr (meno di un'ora fa!)"
-                $lblAge.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Error)
-            } elseif ($timeSpan.TotalHours -lt 24) {
-                $lblAge.Text = "Modificato $timeStr (nelle ultime 24 ore)"
-                $lblAge.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Warning)
-            } else {
-                $lblAge.Text = "Modificato $timeStr"
-                $lblAge.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Success)
-            }
-            $panel.Controls.Add($lblAge)
-            $yPos += 50
-            
-            Update-Status -Text "Cestino modificato $timeStr" -Color "Success"
-            
-        } else {
-            $lblInfo = New-UnifiedLabel -Text "Nessuna modifica trovata nel cestino. Il cestino potrebbe essere vuoto." -X 20 -Y 80 -FontSize 14 -Color "Secondary"
-            $lblInfo.Size = New-Object System.Drawing.Size(580, 60)
-            $panel.Controls.Add($lblInfo)
-            Update-Status -Text "Cestino vuoto" -Color "Default"
-            $yPos = 160
-        }
-        
-        $btnClose = New-UnifiedButton -Text "Chiudi" -X 250 -Y ($yPos + 10) -Width 140 -Height 40 -Style "Danger" -OnClick { $resultForm.Close() }
-        $panel.Controls.Add($btnClose)
-        
-        $resultForm.ShowDialog($mainForm) | Out-Null
-        
-    } catch {
-        Hide-Overlay
-        Update-Status -Text "Errore controllo cestino" -Color "Error"
-        [System.Windows.Forms.MessageBox]::Show("Errore: $($_.Exception.Message)", "Errore", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
-    }
-}
-
-# ============================================================
-# FUNZIONE REGISTRAZIONI ATTIVE
-# ============================================================
-function Check-Recordings {
-    Update-Status -Text "Controllo registrazioni..." -Color "Warning"
-    Show-Overlay -Title "Controllo Registrazioni" -Subtitle "Verifica programmi aperti..."
-    
-    $rilevati = New-Object System.Collections.Generic.List[psobject]
-    
-    try {
-        $programs = @(
-            @{ Name="NVIDIA ShadowPlay"; Processes=@("nvcontainer","nvsphelper64") }
-            @{ Name="OBS Studio"; Processes=@("obs64","obs32") }
-            @{ Name="Streamlabs Desktop"; Processes=@("Streamlabs OBS","streamlabs-obs") }
-            @{ Name="Windows Game Bar"; Processes=@("GameBar") }
-            @{ Name="Bandicam"; Processes=@("bdcam","Bandicam") }
-        )
-        
-        foreach ($prog in $programs) {
-            try {
-                $proc = Get-Process -Name $prog.Processes -ErrorAction SilentlyContinue
-                if ($proc) {
-                    $rilevati.Add([PSCustomObject]@{
-                        Name = $prog.Name
-                        IsRecording = $false
-                    })
-                }
-            } catch { }
-        }
-    } finally {
-        Hide-Overlay
-    }
-    
-    $resultForm = New-StyledForm -Title "Controllo Registrazioni" -Width 600 -Height 400
-    
-    if ($rilevati.Count -gt 0) {
-        $lblTitle = New-Object System.Windows.Forms.Label
-        $lblTitle.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
-        $lblTitle.Location = New-Object System.Drawing.Point(20, 20)
-        $lblTitle.Size = New-Object System.Drawing.Size(550, 30)
-        $lblTitle.Text = "Programmi di registrazione aperti: " + (($rilevati | ForEach-Object { $_.Name }) -join ", ")
-        $lblTitle.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Warning)
-        $resultForm.Controls.Add($lblTitle)
-        
-        $yPos = 70
-        foreach ($r in $rilevati) {
-            $lbl = New-Object System.Windows.Forms.Label
-            $lbl.Text = "• $($r.Name)"
-            $lbl.Font = New-Object System.Drawing.Font("Segoe UI", 11)
-            $lbl.Location = New-Object System.Drawing.Point(30, $yPos)
-            $lbl.AutoSize = $true
-            $lbl.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Text)
-            $resultForm.Controls.Add($lbl)
-            $yPos += 30
-        }
-    } else {
-        $lblTitle = New-Object System.Windows.Forms.Label
-        $lblTitle.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
-        $lblTitle.Location = New-Object System.Drawing.Point(20, 20)
-        $lblTitle.Size = New-Object System.Drawing.Size(550, 50)
-        $lblTitle.Text = "Nessun programma di registrazione aperto"
-        $lblTitle.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($Theme.Success)
-        $resultForm.Controls.Add($lblTitle)
-    }
-    
-    $btnClose = New-UnifiedButton -Text "Chiudi" -X 230 -Y 300 -Width 140 -Height 40 -Style "Danger" -OnClick { $resultForm.Close() }
-    $resultForm.Controls.Add($btnClose)
-    
-    $resultForm.ShowDialog($mainForm) | Out-Null
-    
-    Update-Status -Text "Controllo registrazioni completato" -Color "Success"
-}
-
-# ============================================================
-# FUNZIONE GET USN JOURNAL STATUS
-# ============================================================
-function Get-USNJournalStatus {
-    $result = @{
-        Status = "NON DISPONIBILE"
-        Details = ""
-        IsDeleted = $false
-    }
-    try {
-        $usnInfo = & fsutil usn queryjournal C: 2>$null
-        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($usnInfo)) {
-            $result.Status = "DISATTIVO"
-            $result.Details = "USN Journal disabilitato o eliminato"
-            $result.IsDeleted = $true
-            return $result
-        }
-        
-        $result.Status = "ATTIVO"
-        $result.Details = "USN Journal attivo e funzionante"
-        $result.IsDeleted = $false
-        
-    } catch {
-        $result.Status = "ERRORE"
-        $result.Details = "Errore: $($_.Exception.Message)"
-        $result.IsDeleted = $true
-    }
-    return $result
-}
-
-# ============================================================
-# FUNZIONE 1 - CERCA .LOG.GZ
-# ============================================================
-function Start-LogGzSearch {
-    Update-Status -Text "Ricerca in corso..." -Color "Warning"
-    Show-Overlay -Title "Ricerca file .log.gz" -Subtitle "Scansione in corso..."
-    
-    $found = New-Object System.Collections.Generic.List[string]
-    $global:CancelScan = $false
-    
-    try {
-        $roots = [System.IO.DriveInfo]::GetDrives() |
-            Where-Object { $_.DriveType -eq "Fixed" -and $_.IsReady } |
-            ForEach-Object { $_.RootDirectory.FullName }
-        
-        foreach ($root in $roots) {
-            if ($global:CancelScan) { break }
-            Find-LogGzFiles -RootPath $root -FoundList $found
-        }
-    } finally {
-        Hide-Overlay
-    }
-    
-    if ($found.Count -eq 0) {
-        [System.Windows.Forms.MessageBox]::Show("Nessun file .log.gz valido trovato.", "Ricerca completata", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
-        Update-Status -Text "Nessun file trovato" -Color "Default"
-        return
-    }
-    Update-Status -Text "Trovati $($found.Count) file" -Color "Success"
-    [System.Windows.Forms.MessageBox]::Show("Trovati $($found.Count) file .log.gz", "Ricerca completata", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
-}
-
-function Find-LogGzFiles {
-    param([string]$RootPath, [System.Collections.Generic.List[string]]$FoundList)
-    $dirsToScan = New-Object System.Collections.Generic.Queue[string]
-    $dirsToScan.Enqueue($RootPath)
-    $counter = 0
-    
-    while ($dirsToScan.Count -gt 0 -and -not $global:CancelScan) {
-        $currentDir = $dirsToScan.Dequeue()
-        $counter++
-        if ($counter % 100 -eq 0) { Update-Status -Text "Scansione: $currentDir" -Color "Warning" }
-        try {
-            $filesHere = [System.IO.Directory]::EnumerateFiles($currentDir, "*.log.gz")
-            foreach ($f in $filesHere) {
-                if ($global:CancelScan) { break }
-                if (Test-IsGzipSignature -Path $f) { $FoundList.Add($f) }
-            }
-        } catch { }
-        try {
-            $subDirs = [System.IO.Directory]::EnumerateDirectories($currentDir)
-            foreach ($d in $subDirs) { $dirsToScan.Enqueue($d) }
-        } catch { }
-    }
-}
-
-# ============================================================
-# FUNZIONE 2 - JOURNAL USN
-# ============================================================
-$global:USNTempFile = $null
-
-function Start-JournalRead {
-    if (-not (Test-IsAdmin)) {
-        $r = [System.Windows.Forms.MessageBox]::Show(
-            "La lettura del journal USN richiede privilegi di Amministratore.`nVuoi riavviare lo script come Amministratore?",
-            "Privilegi richiesti",
-            [System.Windows.Forms.MessageBoxButtons]::YesNo,
-            [System.Windows.Forms.MessageBoxIcon]::Warning)
-        if ($r -eq [System.Windows.Forms.DialogResult]::Yes) {
-            $scriptPath = Get-ScriptPath
-            if ($scriptPath) {
-                Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`"" -Verb RunAs
-                $mainForm.Close()
-            }
-        }
-        return
-    }
-    
-    Update-Status -Text "Lettura USN Journal..." -Color "Warning"
-    Show-Overlay -Title "Analisi USN Journal" -Subtitle "Lettura in corso..."
-    
-    try {
-        $global:USNTempFile = [System.IO.Path]::GetTempFileName()
-        $global:USNTempFile = [System.IO.Path]::ChangeExtension($global:USNTempFile, ".txt")
-        
-        $argList = "/c `"fsutil usn readjournal C: csv | findstr /i /C:`"0x80000200`" /C:`"0x00001000`" /C:`"0x00002000`" > `"$global:USNTempFile`"`""
-        
-        $p = Start-Process -FilePath "cmd.exe" -ArgumentList $argList -Wait -WindowStyle Hidden -PassThru
-        
-        Hide-Overlay
-        
-        if (Test-Path $global:USNTempFile) {
-            $fileInfo = Get-Item $global:USNTempFile
-            if ($fileInfo.Length -gt 0) {
-                Update-Status -Text "USN Journal analizzato" -Color "Success"
-                Start-Process -FilePath "notepad.exe" -ArgumentList $global:USNTempFile -WindowStyle Normal
-                
-                [System.Windows.Forms.MessageBox]::Show(
-                    "Analisi completata! Il file temporaneo e' stato aperto con Notepad.",
-                    "Completato",
-                    [System.Windows.Forms.MessageBoxButtons]::OK,
-                    [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
-            } else {
-                Update-Status -Text "Nessuna corrispondenza trovata" -Color "Default"
-                [System.Windows.Forms.MessageBox]::Show(
-                    "Nessuna corrispondenza trovata nel journal USN.",
-                    "Nessun risultato",
-                    [System.Windows.Forms.MessageBoxButtons]::OK,
-                    [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
-                Remove-Item $global:USNTempFile -Force -ErrorAction SilentlyContinue
-                $global:USNTempFile = $null
-            }
-        }
-        
-    } catch {
-        Hide-Overlay
-        Update-Status -Text "Errore" -Color "Error"
-        [System.Windows.Forms.MessageBox]::Show("Errore durante la lettura del journal: $($_.Exception.Message)", "Errore", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
-        if ($global:USNTempFile -and (Test-Path $global:USNTempFile)) {
-            Remove-Item $global:USNTempFile -Force -ErrorAction SilentlyContinue
-            $global:USNTempFile = $null
-        }
-    }
-}
-
-# ============================================================
-# ANALISI SISTEMA
-# ============================================================
-function Check-SystemIntegrity {
-    Update-Status -Text "Analisi sistema in corso..." -Color "Warning"
-    Show-Overlay -Title "Analisi Sistema" -Subtitle "Verifica integrita sistema..."
-    
-    try {
-        $usnStatus = Get-USNJournalStatus
-        
-        Hide-Overlay
-        
-        $resultForm = New-StyledForm -Title "Analisi Sistema - Report" -Width 700 -Height 400
-        $panel = New-UnifiedPanel -X 15 -Y 15 -Width 670 -Height 340 -Style "Surface" -Title "Risultati Analisi Sistema"
-        $resultForm.Controls.Add($panel)
-        
-        $yPos = 50
-        
-        $lblUsn = New-UnifiedLabel -Text "USN Journal: $($usnStatus.Status)" -X 20 -Y $yPos -FontSize 12 -Weight "Bold"
-        $panel.Controls.Add($lblUsn)
-        $yPos += 30
-        
-        $lblUsnDetails = New-UnifiedLabel -Text $usnStatus.Details -X 35 -Y $yPos -FontSize 10 -Color "Secondary"
-        $lblUsnDetails.Size = New-Object System.Drawing.Size(600, 30)
-        $panel.Controls.Add($lblUsnDetails)
-        $yPos += 50
-        
-        if ($usnStatus.IsDeleted) {
-            $lblWarning = New-UnifiedLabel -Text "ATTENZIONE: USN Journal eliminato o disabilitato!" -X 20 -Y $yPos -FontSize 13 -Weight "Bold" -Color "Error"
-            $panel.Controls.Add($lblWarning)
-            $yPos += 40
-        } else {
-            $lblOk = New-UnifiedLabel -Text "Sistema integro - Nessuna anomalia rilevata" -X 20 -Y $yPos -FontSize 13 -Weight "Bold" -Color "Success"
-            $panel.Controls.Add($lblOk)
-            $yPos += 40
-        }
-        
-        $btnClose = New-UnifiedButton -Text "Chiudi" -X 260 -Y ($yPos + 10) -Width 140 -Height 40 -Style "Danger" -OnClick { $resultForm.Close() }
-        $panel.Controls.Add($btnClose)
-        
-        $resultForm.ShowDialog($mainForm) | Out-Null
-        
-        Update-Status -Text "Analisi completata" -Color "Success"
-        
-    } catch {
-        Hide-Overlay
-        Update-Status -Text "Errore" -Color "Error"
-        [System.Windows.Forms.MessageBox]::Show("Errore durante l'analisi: $($_.Exception.Message)", "Errore", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
-    }
-}
-
-# ============================================================
-# FUNZIONE 3 - AUTO ANALYZE
-# ============================================================
-function Start-AutoAnalyze {
-    Update-Status -Text "Analisi automatica in corso..." -Color "Warning"
-    Show-Overlay -Title "Analisi Automatica" -Subtitle "Ricerca dati nei log..."
-    
-    try {
-        $found = New-Object System.Collections.Generic.List[string]
-        $global:CancelScan = $false
-        
-        $roots = [System.IO.DriveInfo]::GetDrives() |
-            Where-Object { $_.DriveType -eq "Fixed" -and $_.IsReady } |
-            ForEach-Object { $_.RootDirectory.FullName }
-        
-        foreach ($root in $roots) {
-            if ($global:CancelScan) { break }
-            Find-LogGzFiles -RootPath $root -FoundList $found
-        }
-        
-        Hide-Overlay
-        
-        if ($found.Count -eq 0) {
-            [System.Windows.Forms.MessageBox]::Show("Nessun file .log.gz trovato.", "Analisi completata", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
-            Update-Status -Text "Nessun file trovato" -Color "Default"
-            return
-        }
-        
-        Update-Status -Text "Trovati $($found.Count) file" -Color "Success"
-        [System.Windows.Forms.MessageBox]::Show("Trovati $($found.Count) file .log.gz da analizzare.", "Analisi completata", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
-        
-    } catch {
-        Hide-Overlay
-        Update-Status -Text "Errore" -Color "Error"
-        [System.Windows.Forms.MessageBox]::Show("Errore: $($_.Exception.Message)", "Errore", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
-    }
-}
-
-# ============================================================
-# AVVIO E PULIZIA FINALE
+# CLEANUP
 # ============================================================
 $mainForm.Add_FormClosing({
     $global:CancelScan = $true
@@ -993,5 +881,8 @@ $mainForm.Add_FormClosing({
     }
 })
 
+# ============================================================
+# START
+# ============================================================
 Update-Status -Text "Ready" -Color "Success"
 [void]$mainForm.ShowDialog()
